@@ -232,7 +232,8 @@ public class Proj3 {
                 for(int i=0; i<_symbolTable.length(); i++){
                     if(_symbolTable._hash[i]!=null){
                         HashValue hash = _symbolTable._hash[i];
-                        System.out.println(String.format("Symbol %s stored in Symbol table at position %d", hash.Key, hash.Position  ));
+                        SourceCodeLine srcLine = (SourceCodeLine)hash.Value;
+                        System.out.println(String.format("Symbol %s \t with memory location %s  stored at position %d", hash.Key, Integer.toHexString(srcLine.Position), hash.Position  ));
                     }
                 }
                 
@@ -248,7 +249,6 @@ public class Proj3 {
 
     protected int HexToInt(String hex) {
         return Integer.parseInt(hex, 16);
-
     }
 
     /**
