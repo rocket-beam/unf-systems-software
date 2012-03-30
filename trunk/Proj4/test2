@@ -1,0 +1,23 @@
+EXAM      START    100
+EXA       LDT     #14
+          ADDR     T,A
+          ADD      SEC
+          STA      ANS,X
+          BASE     BIG
+          LDB     #BIG
+          LDS     @ONE
+         +STA      B
+          LDT     =X'1AB9'
+          LDS     =C'EON'
+          a equ b
+          LI
+          J       @EXA
+          RSUB
+SEC       WORD     -11
+NUM       RESW     1
+ANS       RESW     2
+ONE       WORD     13
+BIG       RESW     1000
+B         RESW     1
+          LTORG    
+          END      EXA

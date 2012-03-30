@@ -1,0 +1,7 @@
+ADDRES    START    100         . tests duplicate and undefined label
+NOW       LDA      BEGIN       .oad A with (BEGIN)
+XXX       STA      THERE       .tore (A) at THERE
+BEGIN     WORD     2
+THE       RESW     1
+BEGIN     RESW     2
+          END      NOW
