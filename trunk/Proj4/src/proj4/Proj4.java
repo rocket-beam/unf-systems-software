@@ -4,13 +4,11 @@
  */
 package proj4;
 
-import java.awt.Label;
-import java.util.regex.*;
-import java.math.BigInteger;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigInteger;
 
 /**
  *
@@ -29,7 +27,7 @@ public class Proj4 {
     private HashTable _regOps = new HashTable(6);
     private HashTable _registers = new HashTable(10);
     static int startPosition;
-    static int PC;
+    static int pc;
 
     /**
      * @param args the command line arguments
@@ -50,8 +48,7 @@ public class Proj4 {
             //load opcodes into opcode hashtable
             Proj4 proj = new Proj4();
 
-            if (proj.LoadOpCodes(opFileName))
-            {
+            if (proj.LoadOpCodes(opFileName)) {
 
                 proj.InitPreprocessorCommands();
                 proj.InitRegisters();
@@ -87,7 +84,7 @@ public class Proj4 {
 
     //designates register-register commands
     //for future use.
-    public void InitRegOps(){
+    public void InitRegOps() {
         _regOps.Add("MULR");
         _regOps.Add("ADDR");
         _regOps.Add("COMPR");
@@ -95,7 +92,7 @@ public class Proj4 {
         _regOps.Add("SUBR");
         _regOps.Add("TIXR");
     }
-    
+
     public void InitRegisters() {
         _registers.Add("A");
         _registers.Add("X");
@@ -107,7 +104,7 @@ public class Proj4 {
         _registers.Add("T");
         _registers.Add("F");
     }
-    
+
     public void AssemblePass1(String inputFile) {
 
         int currentPosition = 0;
@@ -144,24 +141,9 @@ public class Proj4 {
                         String[] tokens = line.split("\\s+");
 
                         for (int i = 0; i < tokens.length; i++) {
-                            if (_preprocs.Find(tokens[i]) != null) {
+                            if (_preprocs.Find(tokens[i], true) != null) {
                                 containsPreproc = true;
                             }
-                        }
-
-
-                        if (line.contains("=X'") || line.contains("=C'")) {
-
-                            String literal;
-
-                            if (line.contains("=X'")) {
-                                literal = line.substring(line.indexOf("=X'"), line.lastIndexOf("'") + 1);
-                            } else {
-                                literal = line.substring(line.indexOf("=C'"), line.lastIndexOf("'") + 1);
-                            }
-
-                            _literals.Add(literal, literal);
-                            System.out.println(String.format("Literal found in '%s' ", line));
                         }
 
 
@@ -177,28 +159,49 @@ public class Proj4 {
 
                         if (length > 9) {
                             String extender = line.substring(9, 10).trim();
+
+                            //extended code
                             if (extender.equals("+")) {
                                 src.IsExtended = true;
                             } else {
                                 src.IsExtended = false;
                             }
 
+                            //original SIC code
+                            if (extender.equals("*")) {
+                                src.IsSic = true;
+                            } else {
+                                src.IsSic = false;
+                            }
 
+
+                            //stores OP CODE (lda, sta, etc)
                             if (length >= 10) {
+                                String opCodeName;
+
                                 if (length > 16) {
-                                    src.OpCode = line.substring(10, 16).trim();
+                                    opCodeName = line.substring(10, 16).trim();
                                 } else {
-                                    src.OpCode = line.substring(10).trim();
+                                    opCodeName = line.substring(10).trim();
+                                }
+
+                                src.Operator = opCodeName;
+
+                                HashValue opCodeHash = _sicOps.Find(opCodeName);
+                                Object opCode = null;
+
+                                if (opCodeHash != null) {
+                                    opCode = opCodeHash.Value;
+                                }
+
+                                if (opCode != null) {
+                                    src.OpCode = (SicOperation) opCode;
                                 }
                             }
 
 
-                            if (length > 7) {
-                                src.Label = line.substring(0, 7).trim();
-                            } else {
-                                src.Label = line.substring(0).trim();
-                            }
 
+                            //set operand before parsing op modifier
                             if (line.length() > 19) {
                                 if (line.length() > 27) {
                                     src.Operand = line.substring(19, 28).trim();
@@ -207,37 +210,62 @@ public class Proj4 {
                                 }
                             }
 
-                            //preliminary pass 2 checking.
-                            //checks base nix
-                            if (src.Operand.contains("@")) {
-                                if (src.Operand.toCharArray()[0] == '@') {
+                            if (line.length() > 18) {
+                                src.OpModifier = line.charAt(18);
+
+                                if (src.OpModifier == '@') {
+
                                     src.IsIndirect = true;
                                 } else {
                                     src.IsIndirect = false;
-                                    src.HasError = true;
-                                    src.ErrorMessage = "Invalid Operand specified";
                                 }
-                            } else {
-                                src.IsIndirect = false;
+
+                                if (src.OpModifier == '#') {
+                                    src.IsImmediate = true;
+                                } else {
+                                    src.IsImmediate = false;
+                                }
+
+                                if (src.OpModifier == '=') {
+                                    String literal = "";
+
+                                    char literalMod = src.Operand.toCharArray()[0];
+
+                                    if (literalMod == 'X' || literalMod == 'C') {
+                                        if (literalMod == 'X') {
+                                            literal = line.substring(line.indexOf("=X'"), line.lastIndexOf("'") + 1);
+                                        } else if (src.Operand.toCharArray()[0] == 'C') {
+
+                                            literal = line.substring(line.indexOf("=C'"), line.lastIndexOf("'") + 1);
+                                        }
+
+                                        _literals.Add(literal, literal);
+
+
+                                        System.out.println(String.format("Literal found in '%s' ", line));
+                                    }
+                                }
+
+                                if (!src.IsImmediate && !src.IsIndirect && !src.IsSic) {
+                                    src.IsImmediate = true;
+                                    src.IsIndirect = true;
+                                }
                             }
 
-                            if (src.Operand.toCharArray()[0] == '#') {
-                                src.IsImmediate = true;
-                            } else {
-                                src.IsImmediate = false;
-                            }
+                            //preliminary pass 2 checking.
+                            //checks base nix
 
-                            if (src.OpCode.toCharArray()[0] == '*') {
-                                src.IsSic = true;
-                            } else {
-                                src.IsSic = false;
+                            if (line.toLowerCase().contains("equ")) {
+                                src.IsPreproc = true;
                             }
 
                             if (line.length() > 29) {
                                 src.Comment = line.substring(29).trim();
                             }
 
-                            if (src.OpCode.trim().toLowerCase().compareTo("start") == 0) {
+
+                            if (src.Operator.trim().toLowerCase().compareTo("start") == 0) {
+                                src.IsPreproc = true;
                                 startPosition = HexToInt(src.Operand);
                                 currentPosition = startPosition;
                             }
@@ -247,26 +275,28 @@ public class Proj4 {
                                 currentPosition = startPosition;
                             }
 
+
                         }
 
                         //try to find nmeunomic in sic operations.
                         try {
                             src.Position = currentPosition;
-                            HashValue hashedOp = _sicOps.Find(src.OpCode);
-                            SicOperation op = null;
+
+                            SicOperation op = src.OpCode;
 
                             //if it can, add the size of the operation ot the current position
-                            if (hashedOp != null) {
-                                op = (SicOperation) hashedOp.Value;
+                            if (op != null) {
                                 currentPosition += op.Size;
+                                src.Size = op.Size;
                             }
 
                             //if extended, add an extra byte;
                             if (src.IsExtended) {
-                                currentPosition += 1;
+                                currentPosition++;
+                                src.Size++;
                             }
 
-                            String nemonic = src.OpCode.toLowerCase().trim();
+                            String nemonic = src.Operator.toLowerCase().trim();
 
                             //designates whether the code is preproc or
                             //executable code.
@@ -291,25 +321,23 @@ public class Proj4 {
                                     //register-register commands (TIXR, etc) will not reach this code,
                                     //since they have no comma associated with their op.  If they do,
                                     //they deserve an error.
-                                    if (op != null && _regOps.Find(op.OpCode)!=null) {
+                                    if (op != null && _regOps.Find(op.OpCode) != null) {
                                         for (int i = 0; i < 2; i++) {
                                             if (_registers.Find(regToRegOps[i]) == null) {
                                                 src.HasWarning = true;
                                                 src.ErrorMessage = "Invalid Register found in Register to Register Operation:" + regToRegOps[i];
                                             }
                                         }
-                                    }
-                                    else{
-                                        if(regToRegOps[1].compareTo("X") == 0){
+                                    } else {
+                                        if (regToRegOps[1].compareTo("X") == 0) {
                                             src.IsIndexed = true;
-                                        }
-                                        else{
+                                        } else {
                                             src.IsIndexed = false;
                                             src.HasError = true;
                                             src.ErrorMessage = "Invalid use of ',' in Indexed operation.  X (index register) should be used.";
                                         }
                                     }
-                                    
+
                                 }
 
                             }
@@ -317,22 +345,30 @@ public class Proj4 {
                             //deermines how much space to give to each memory 
                             //declaration
                             if (nemonic.compareTo("word") == 0) {
-                                currentPosition += 3;
+                                src.Size = 3;
+                                currentPosition += src.Size;
+                                src.IsAddressOperation = true;
                             } else if (nemonic.compareTo("resw") == 0) {
                                 try {
-                                    currentPosition += Integer.parseInt(src.Operand) * 3;
+                                    src.Size = Integer.parseInt(src.Operand) * 3;
+                                    currentPosition += src.Size;
+                                    src.IsAddressOperation = true;
                                 } catch (Exception ex) {
                                     System.out.println("Error Parsing RESW value");
                                 }
                             } else if (nemonic.compareTo("byte") == 0) {
                                 try {
-                                    currentPosition += (int) (src.Operand.length() / 2 + 0.5);
+                                    src.Size = (int) (src.Operand.length() / 2 + 0.5);
+                                    currentPosition += src.Size;
+                                    src.IsAddressOperation = true;
                                 } catch (Exception ex) {
                                     System.out.println("Error Parsing BYTE value");
                                 }
                             } else if (nemonic.compareTo("resb") == 0) {
                                 try {
-                                    currentPosition += Integer.parseInt(src.Operand);
+                                    src.Size = Integer.parseInt(src.Operand);
+                                    currentPosition += src.Size;
+                                    src.IsAddressOperation = true;
                                 } catch (Exception ex) {
                                     System.out.println("Error Parsing RESB value");
                                 }
@@ -354,19 +390,22 @@ public class Proj4 {
                     if (line.contains("LTORG")) {
                         for (int i = 0; i < _literals.length(); i++) {
                             if (_literals._hash[i] != null) {
+
+                                //grab each literal
                                 String literalValue = (String) _literals._hash[i].Value;
+
                                 SourceCodeLine literal = new SourceCodeLine();
 
                                 literal.Operand = literalValue.substring(literalValue.indexOf("'") + 1, literalValue.lastIndexOf("'"));
-                                literal.OpCode = "BYTE";
-
+                                literal.IsAddressOperation = true;
+                                literal.Label = literalValue;
                                 literal.Position = currentPosition;
 
                                 if (literalValue.contains("=C")) {
-                                    literal.Source = String.format("%s\t Byte %x", literalValue, new BigInteger(literal.Operand.getBytes()));
+                                    literal.Source = String.format("%s BYTE     %x", StringExtension.setLength(literalValue, 9, ' '), new BigInteger(literal.Operand.getBytes()));
                                     currentPosition += literal.Operand.length();
                                 } else {
-                                    literal.Source = String.format("%s\t Byte %s", literalValue, literal.Operand);
+                                    literal.Source = String.format("%s BYTE     %s", StringExtension.setLength(literalValue, 9, ' '), literal.Operand);
                                     currentPosition += (int) (literal.Operand.length() / 2 + 0.5);
                                 }
 
@@ -393,27 +432,98 @@ public class Proj4 {
 
     public void AssemblePass2() {
 
+        pc = startPosition;
+
         for (int i = 0; i < _src.length; i++) {
-        }
 
+            SourceCodeLine src = _src[i];
 
+            if (src != null) {
+                pc += src.Size;
 
-        //print out of source file
-        System.out.println("\n--------------------------");
-        System.out.println("Source Code File:");
-        for (int i = 0; i < _src.length; i++) {
-            if (_src[i] != null) {
-                System.out.println(String.format("%06x : %s %s %s %s %s %s", _src[i].Position, _src[i].Source,
-                        _src[i].IsIndirect, _src[i].IsImmediate, _src[i].IsBaseRelative, _src[i].IsPCRelative, _src[i].IsExtended));
+                if (!src.IsPreproc && !src.IsAddressOperation) {
+                    if (src.OpCode != null) {
+                        src.AssembledHex = HexToInt(src.OpCode.OpCode);
+                        if (src.IsImmediate) {
+                            src.AssembledHex += 2;
+                        }
+                        if (src.IsIndirect) {
+                            src.AssembledHex += 1;
+                        }
+
+                        src.AssembledLine = String.format("%02x", src.AssembledHex).toUpperCase();
+
+                        //operand specified
+                        if (src.Operand != null && src.Operand.compareTo("") != 0) {
+                            System.out.println(String.format("%06x: %2s0000 %s", src.Position, src.AssembledLine, src.Source));
+                        }
+                    } else {
+                        HashValue preproc = _preprocs.Find(src.Operator);
+                        if(preproc != null)
+                        {
+                            src.IsPreproc = true;
+                        }
+                        
+                        if(!src.IsPreproc && !src.IsAddressOperation )
+                        {
+                            System.out.println(String.format("%06x:        %s ", src.Position, src.Source));
+                            src.HasError=true;
+                            src.ErrorMessage = "Error finding Opcode for line: " + src.Source; 
+                        }
+                    }
+                    
+                    if (src.OpCode != null) {
+                        SicOperation opCode = src.OpCode;
+                    }
+                } 
+                
+                if(src.IsPreproc || src.IsAddressOperation){
+                    System.out.println(String.format("%06x:        %s ", src.Position, src.Source));
+                }
+                if(src.HasError)
+                    System.out.println(src.ErrorMessage);
+                
             }
         }
+
+        //print out of source file
+//        System.out.println("\n--------------------------");
+//        System.out.println("Source Code File:");
+//        for (int i = 0; i < _src.length; i++) {
+//            try {
+//                if (_src[i] != null) {
+//
+//                    if (_src[i].IsPreproc) {
+//                        System.out.println(String.format("%06x :%s", _src[i].Position, _src[i].Source));
+//                    } else {
+//                        System.out.println(String.format("%06x :%s  \t\t %d%d %d%d%d%d", _src[i].Position, _src[i].Source,
+//                                BoolToInt(_src[i].IsImmediate),
+//                                BoolToInt(_src[i].IsIndirect),
+//                                BoolToInt(_src[i].IsIndexed),
+//                                BoolToInt(_src[i].IsBaseRelative),
+//                                BoolToInt(_src[i].IsPCRelative),
+//                                BoolToInt(_src[i].IsExtended)));
+//                    }
+//                }
+//            } catch (Exception ex) {
+//                System.err.println("Exception:" + ex.getMessage());
+//            }
+//        }
 
         for (int i = 0; i < _symbolTable.length(); i++) {
             if (_symbolTable._hash[i] != null) {
                 HashValue hash = _symbolTable._hash[i];
                 SourceCodeLine srcLine = (SourceCodeLine) hash.Value;
-                System.out.println(String.format("Symbol %s \t with memory location %s  stored at position %d", hash.Key, Integer.toHexString(srcLine.Position), hash.Position));
+                //System.out.println(String.format("Symbol %s \t with memory location %s  stored at position %d", hash.Key, Integer.toHexString(srcLine.Position), hash.Position));
             }
+        }
+    }
+
+    private int BoolToInt(Boolean bool) {
+        if (bool == null) {
+            return 0;
+        } else {
+            return bool ? 1 : 0;
         }
     }
 
@@ -483,6 +593,8 @@ public class Proj4 {
         return true;
 
 
+
+
     }
 }
 
@@ -527,9 +639,18 @@ class HashTable {
 
     public boolean Add(HashValue item) {
 
+        return Add(item, true);
+    }
+
+    public boolean Add(HashValue item, Boolean suppressMessage) {
+
         int hashValue = GetHashValue(item.Key);
 
-        String out = "Key " + item.Key + " hashed to position " + hashValue + " of " + _hashTableSize;
+        String out = "";
+
+        if (!suppressMessage) {
+            out = "Key " + item.Key + " hashed to position " + hashValue + " of " + _hashTableSize;
+        }
 
         //if the item Key is empty, store value in that position
         if (_hash[hashValue] == null) {
@@ -573,12 +694,18 @@ class HashTable {
             Rehash();
         }
 
-        System.out.println(out);
+        if (out != null && out.compareTo("") != 0) {
+            System.out.println(out);
+        }
 
         return true;
     }
 
     public HashValue Find(String key) {
+        return Find(key, true);
+    }
+
+    public HashValue Find(String key, Boolean suppressError) {
 
         String out = "";
         int hashedValue = GetHashValue(key);
@@ -587,7 +714,7 @@ class HashTable {
 
         while (foundHash == false && _hash[hashedValue] != null) {
             //if you find it, Huzzah!
-            if (_hash[hashedValue].Key.compareTo(key) == 0) {
+            if (_hash[hashedValue].Key.toLowerCase().compareTo(key.toLowerCase()) == 0) {
                 foundHash = true;
             } else {
                 //if not keep looking.
@@ -601,8 +728,10 @@ class HashTable {
         if (foundHash == true) {
             return _hash[hashedValue];
         } else {
-            out = "Could not find key " + key;
-            System.out.println(out);
+            if (!suppressError) {
+                out = "Could not find key " + key;
+                System.out.println(out);
+            }
             return null;
         }
     }
@@ -636,25 +765,40 @@ class SourceCodeLine {
     //label:  This also gets stored in the Symbol table
     String Label;
     //Pass 2 assembled line
-    String AssembledLine;
+    String AssembledLine = "";
     //Pass 2 assembled hex
     int AssembledHex;
     //SIC Op code
-    String OpCode;
+    SicOperation OpCode;
+    String Operator;
     String Operand;
+    char OpModifier;
     String Comment;
-    Boolean IsExtended;
-    Boolean IsImmediate;
-    Boolean IsIndirect;
-    Boolean IsSic;
-    Boolean IsIndexed;
-    Boolean IsPCRelative;
-    Boolean IsBaseRelative;
-    Boolean IsPreproc;
-    Boolean HasError;
-    Boolean HasWarning;
+    //NIXBPE boolean values
+    //yes this could be handled better.
+    //whatever.
+    Boolean IsExtended = false;
+    Boolean IsImmediate = false;
+    Boolean IsIndirect = false;
+    Boolean IsIndexed = false;
+    Boolean IsPCRelative = false;
+    Boolean IsBaseRelative = false;
+    //if a command isn't preproc,
+    //it's a sicop
+    Boolean IsPreproc = false;
+    Boolean IsComment = false;
+    //Signifies the line is an Adddress operation (WORD, BYTE, ect)
+    Boolean IsAddressOperation = false;
+    //is the command legacy
+    Boolean IsSic = false;
+    //error messages
+    Boolean HasError = false;
+    Boolean HasWarning = false;
     String ErrorMessage;
+    //original source line
     String Source;
+    //position within code
+    int Size = 0;
     int Position;
 }
 
@@ -662,4 +806,36 @@ class SicOperation {
 
     int Size;
     String OpCode;
+    String Name;
+    int OpCodeHex;
+}
+
+class StringExtension {
+
+    public static String setLength(String original, int length, char padChar) {
+        return justifyLeft(original, length, padChar, false);
+    }
+
+    protected static String justifyLeft(String str, final int width, char padWithChar,
+            boolean trimWhitespace) {
+        // Trim the leading and trailing whitespace ...
+        str = str != null ? (trimWhitespace ? str.trim() : str) : "";
+
+        int addChars = width - str.length();
+        if (addChars < 0) {
+            // truncate
+            return str.subSequence(0, width).toString();
+        }
+        // Write the content ...
+        final StringBuilder sb = new StringBuilder();
+        sb.append(str);
+
+        // Append the whitespace ...
+        while (addChars > 0) {
+            sb.append(padWithChar);
+            --addChars;
+        }
+
+        return sb.toString();
+    }
 }

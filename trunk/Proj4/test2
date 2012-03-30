@@ -10,7 +10,6 @@ EXA       LDT     #14
           LDT     =X'1AB9'
           LDS     =C'EON'
           a equ b
-          LI
           J       @EXA
           RSUB
 SEC       WORD     -11
