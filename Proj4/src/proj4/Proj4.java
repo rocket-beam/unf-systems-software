@@ -26,7 +26,10 @@ public class Proj4 {
     private HashTable _symbolTable = new HashTable(_symbolTableSize);
     private SourceCodeLine[] _src = new SourceCodeLine[200];
     private HashTable _literals = new HashTable(3);
+    private HashTable _regOps = new HashTable(6);
+    private HashTable _registers = new HashTable(10);
     static int startPosition;
+    static int PC;
 
     /**
      * @param args the command line arguments
@@ -47,17 +50,16 @@ public class Proj4 {
             //load opcodes into opcode hashtable
             Proj4 proj = new Proj4();
 
-            proj.LoadOpCodes(opFileName);
+            if (proj.LoadOpCodes(opFileName))
+            {
 
-            proj.InitPreprocessorCommands();
+                proj.InitPreprocessorCommands();
+                proj.InitRegisters();
 
-            if (proj._sicOps.length() > 0) {
-                System.out.println(proj._sicOps.length() + " OpCodes loaded into hashtable");
-            }
-
-            if (inputFile.length() > 0) {
-                proj.AssemblePass1(inputFile);
-                proj.AssemblePass2();
+                if (inputFile.length() > 0) {
+                    proj.AssemblePass1(inputFile);
+                    proj.AssemblePass2();
+                }
             }
 
         } else {
@@ -67,21 +69,45 @@ public class Proj4 {
     }
 
     public void InitPreprocessorCommands() {
-
-        _preprocs.Add("START", "START");
-        _preprocs.Add("END", "End");
-        _preprocs.Add("BASE", "Base");
-        _preprocs.Add("EQU", "EQU");
-        _preprocs.Add("RESB", "RESB");
-        _preprocs.Add("RESW", "RESW");
-        _preprocs.Add("WORD", "BYTE");
-        _preprocs.Add("CSECT", "CSECT");
-        _preprocs.Add("EXTDEF", "EXTDEF");
-        _preprocs.Add("EXTREF", "EXTREF");
-        _preprocs.Add("USE", "USE");
-        _preprocs.Add("LTORG", "LTORG");
+        _preprocs.Add("START");
+        _preprocs.Add("END");
+        _preprocs.Add("BASE");
+        _preprocs.Add("NOBASE");
+        _preprocs.Add("EQU");
+        _preprocs.Add("RESB");
+        _preprocs.Add("RESW");
+        _preprocs.Add("WORD");
+        _preprocs.Add("BYTE");
+        _preprocs.Add("CSECT");
+        _preprocs.Add("EXTDEF");
+        _preprocs.Add("EXTREF");
+        _preprocs.Add("USE");
+        _preprocs.Add("LTORG");
     }
 
+    //designates register-register commands
+    //for future use.
+    public void InitRegOps(){
+        _regOps.Add("MULR");
+        _regOps.Add("ADDR");
+        _regOps.Add("COMPR");
+        _regOps.Add("DIVR");
+        _regOps.Add("SUBR");
+        _regOps.Add("TIXR");
+    }
+    
+    public void InitRegisters() {
+        _registers.Add("A");
+        _registers.Add("X");
+        _registers.Add("L");
+        _registers.Add("PC");
+        _registers.Add("SW");
+        _registers.Add("B");
+        _registers.Add("S");
+        _registers.Add("T");
+        _registers.Add("F");
+    }
+    
     public void AssemblePass1(String inputFile) {
 
         int currentPosition = 0;
@@ -123,14 +149,11 @@ public class Proj4 {
                             }
                         }
 
-                        boolean containsLiteral = false;
 
-
-                        //if(Pattern.matches("=X'*'", line) || Pattern.matches("=C'*'", line))
                         if (line.contains("=X'") || line.contains("=C'")) {
-                            
+
                             String literal;
-                            
+
                             if (line.contains("=X'")) {
                                 literal = line.substring(line.indexOf("=X'"), line.lastIndexOf("'") + 1);
                             } else {
@@ -163,9 +186,9 @@ public class Proj4 {
 
                             if (length >= 10) {
                                 if (length > 16) {
-                                    src.Nemonic = line.substring(10, 16).trim();
+                                    src.OpCode = line.substring(10, 16).trim();
                                 } else {
-                                    src.Nemonic = line.substring(10).trim();
+                                    src.OpCode = line.substring(10).trim();
                                 }
                             }
 
@@ -184,11 +207,37 @@ public class Proj4 {
                                 }
                             }
 
+                            //preliminary pass 2 checking.
+                            //checks base nix
+                            if (src.Operand.contains("@")) {
+                                if (src.Operand.toCharArray()[0] == '@') {
+                                    src.IsIndirect = true;
+                                } else {
+                                    src.IsIndirect = false;
+                                    src.HasError = true;
+                                    src.ErrorMessage = "Invalid Operand specified";
+                                }
+                            } else {
+                                src.IsIndirect = false;
+                            }
+
+                            if (src.Operand.toCharArray()[0] == '#') {
+                                src.IsImmediate = true;
+                            } else {
+                                src.IsImmediate = false;
+                            }
+
+                            if (src.OpCode.toCharArray()[0] == '*') {
+                                src.IsSic = true;
+                            } else {
+                                src.IsSic = false;
+                            }
+
                             if (line.length() > 29) {
                                 src.Comment = line.substring(29).trim();
                             }
 
-                            if (src.Nemonic.trim().toLowerCase().compareTo("start") == 0) {
+                            if (src.OpCode.trim().toLowerCase().compareTo("start") == 0) {
                                 startPosition = HexToInt(src.Operand);
                                 currentPosition = startPosition;
                             }
@@ -199,11 +248,12 @@ public class Proj4 {
                             }
 
                         }
+
                         //try to find nmeunomic in sic operations.
                         try {
                             src.Position = currentPosition;
-                            HashValue hashedOp = _sicOps.Find(src.Nemonic);
-                            SicOperation op;
+                            HashValue hashedOp = _sicOps.Find(src.OpCode);
+                            SicOperation op = null;
 
                             //if it can, add the size of the operation ot the current position
                             if (hashedOp != null) {
@@ -216,18 +266,56 @@ public class Proj4 {
                                 currentPosition += 1;
                             }
 
-                            
-                            
-                            String nemonic = src.Nemonic.toLowerCase().trim();
-                            
-                            
+                            String nemonic = src.OpCode.toLowerCase().trim();
+
                             //designates whether the code is preproc or
                             //executable code.
-                            if(_preprocs.Find(nemonic)!=null)
-                                 src.IsPreproc = true;
-                            else
-                                src.IsExecCode = true;
-                            
+                            if (_preprocs.Find(nemonic) != null) {
+                                src.IsPreproc = true;
+                            } else {
+                                src.IsPreproc = false;
+                            }
+
+                            //determines whether the operation is a indexed operation
+                            if (src.Operand.contains(",")) {
+
+                                String[] regToRegOps = src.Operand.split(",");
+
+                                if (regToRegOps.length != 2) {
+                                    src.HasError = true;
+                                    src.ErrorMessage = "invalid number of registers specified for register to register operation";
+                                } else {
+                                    //check to see if opcode is a register-register command
+                                    //if so, treat it like one.
+                                    //It is important to note that single register
+                                    //register-register commands (TIXR, etc) will not reach this code,
+                                    //since they have no comma associated with their op.  If they do,
+                                    //they deserve an error.
+                                    if (op != null && _regOps.Find(op.OpCode)!=null) {
+                                        for (int i = 0; i < 2; i++) {
+                                            if (_registers.Find(regToRegOps[i]) == null) {
+                                                src.HasWarning = true;
+                                                src.ErrorMessage = "Invalid Register found in Register to Register Operation:" + regToRegOps[i];
+                                            }
+                                        }
+                                    }
+                                    else{
+                                        if(regToRegOps[1].compareTo("X") == 0){
+                                            src.IsIndexed = true;
+                                        }
+                                        else{
+                                            src.IsIndexed = false;
+                                            src.HasError = true;
+                                            src.ErrorMessage = "Invalid use of ',' in Indexed operation.  X (index register) should be used.";
+                                        }
+                                    }
+                                    
+                                }
+
+                            }
+
+                            //deermines how much space to give to each memory 
+                            //declaration
                             if (nemonic.compareTo("word") == 0) {
                                 currentPosition += 3;
                             } else if (nemonic.compareTo("resw") == 0) {
@@ -235,6 +323,12 @@ public class Proj4 {
                                     currentPosition += Integer.parseInt(src.Operand) * 3;
                                 } catch (Exception ex) {
                                     System.out.println("Error Parsing RESW value");
+                                }
+                            } else if (nemonic.compareTo("byte") == 0) {
+                                try {
+                                    currentPosition += (int) (src.Operand.length() / 2 + 0.5);
+                                } catch (Exception ex) {
+                                    System.out.println("Error Parsing BYTE value");
                                 }
                             } else if (nemonic.compareTo("resb") == 0) {
                                 try {
@@ -264,7 +358,7 @@ public class Proj4 {
                                 SourceCodeLine literal = new SourceCodeLine();
 
                                 literal.Operand = literalValue.substring(literalValue.indexOf("'") + 1, literalValue.lastIndexOf("'"));
-                                literal.Nemonic = "BYTE";
+                                literal.OpCode = "BYTE";
 
                                 literal.Position = currentPosition;
 
@@ -297,34 +391,32 @@ public class Proj4 {
         }
     }
 
-    public void AssemblePass2(){
-        
-        for(int i=0; i<_src.length; i++){
-            
-        }
-        
-        
-        
-        //print out of source file
-         System.out.println("\n--------------------------");
-                System.out.println("Source Code File:");
-                for (int i = 0; i < _src.length; i++) {
-                    if (_src[i] != null) {
-                        System.out.println(String.format("%06x : %s %s %s %s %s %s", _src[i].Position, _src[i].Source, 
-                                _src[i].IsIndirect, _src[i].IsImmediate, _src[i].IsBaseRelative, _src[i].IsPCRelative, _src[i].IsExtended));
-                    }
-                }
+    public void AssemblePass2() {
 
-                for (int i = 0; i < _symbolTable.length(); i++) {
-                    if (_symbolTable._hash[i] != null) {
-                        HashValue hash = _symbolTable._hash[i];
-                        SourceCodeLine srcLine = (SourceCodeLine) hash.Value;
-                        System.out.println(String.format("Symbol %s \t with memory location %s  stored at position %d", hash.Key, Integer.toHexString(srcLine.Position), hash.Position));
-                    }
-                }
+        for (int i = 0; i < _src.length; i++) {
+        }
+
+
+
+        //print out of source file
+        System.out.println("\n--------------------------");
+        System.out.println("Source Code File:");
+        for (int i = 0; i < _src.length; i++) {
+            if (_src[i] != null) {
+                System.out.println(String.format("%06x : %s %s %s %s %s %s", _src[i].Position, _src[i].Source,
+                        _src[i].IsIndirect, _src[i].IsImmediate, _src[i].IsBaseRelative, _src[i].IsPCRelative, _src[i].IsExtended));
+            }
+        }
+
+        for (int i = 0; i < _symbolTable.length(); i++) {
+            if (_symbolTable._hash[i] != null) {
+                HashValue hash = _symbolTable._hash[i];
+                SourceCodeLine srcLine = (SourceCodeLine) hash.Value;
+                System.out.println(String.format("Symbol %s \t with memory location %s  stored at position %d", hash.Key, Integer.toHexString(srcLine.Position), hash.Position));
+            }
+        }
     }
-    
-    
+
     protected int HexToInt(String hex) {
         return Integer.parseInt(hex, 16);
     }
@@ -332,7 +424,7 @@ public class Proj4 {
     /**
      * @param args the command line arguments
      */
-    public void LoadOpCodes(String inputFileName) {
+    public boolean LoadOpCodes(String inputFileName) {
 
         System.out.println("Project Started");
 
@@ -374,16 +466,23 @@ public class Proj4 {
                         }
                     }
 
-                 
+
                 }
             } catch (FileNotFoundException ex) {
                 System.out.println("File " + inputFileName + " not found!");
+                return false;
             } catch (IOException ex) {
                 System.out.println("There was an error reading the input file:" + ex.getMessage());
+                return false;
             }
         } else {
             System.out.println("No input file specified");
+            return false;
         }
+
+        return true;
+
+
     }
 }
 
@@ -396,6 +495,10 @@ class HashTable {
     public HashTable(int hashSize) {
         _hashTableSize = hashSize;
         _hash = new HashValue[hashSize];
+    }
+
+    public boolean Add(String key) {
+        return Add(key, key);
     }
 
     public boolean Add(String key, Object value) {
@@ -456,14 +559,14 @@ class HashTable {
                 }
 
             }
-            
-            if(foundDuplicate!=true){
+
+            if (foundDuplicate != true) {
                 item.Position = hashPosition;
                 _hash[hashPosition] = item;
                 occupiedSpace++;
                 hashValue = hashPosition;
             }
-            
+
         }
 
         if (occupiedSpace > _hashTableSize * 0.8) {
@@ -496,9 +599,6 @@ class HashTable {
         }
 
         if (foundHash == true) {
-            out = "Found Key " + key
-                    + " at position " + hashedValue;
-            //System.out.println(out);
             return _hash[hashedValue];
         } else {
             out = "Could not find key " + key;
@@ -533,19 +633,27 @@ class HashValue {
 
 class SourceCodeLine {
 
+    //label:  This also gets stored in the Symbol table
     String Label;
+    //Pass 2 assembled line
     String AssembledLine;
-    int AssembledHex; 
-    String Nemonic;
+    //Pass 2 assembled hex
+    int AssembledHex;
+    //SIC Op code
+    String OpCode;
     String Operand;
     String Comment;
     Boolean IsExtended;
     Boolean IsImmediate;
+    Boolean IsIndirect;
+    Boolean IsSic;
+    Boolean IsIndexed;
     Boolean IsPCRelative;
     Boolean IsBaseRelative;
-    Boolean IsIndirect;
-    Boolean IsExecCode;
     Boolean IsPreproc;
+    Boolean HasError;
+    Boolean HasWarning;
+    String ErrorMessage;
     String Source;
     int Position;
 }
