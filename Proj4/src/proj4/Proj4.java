@@ -441,8 +441,12 @@ public class Proj4 {
             if (src != null) {
                 pc += src.Size;
 
+                int offset=0;
+                
                 if (!src.IsPreproc && !src.IsAddressOperation) {
                     if (src.OpCode != null) {
+                        
+                        
                         src.AssembledHex = HexToInt(src.OpCode.OpCode);
                         if (src.IsImmediate) {
                             src.AssembledHex += 2;
@@ -450,13 +454,47 @@ public class Proj4 {
                         if (src.IsIndirect) {
                             src.AssembledHex += 1;
                         }
-
-                        src.AssembledLine = String.format("%02x", src.AssembledHex).toUpperCase();
-
+                        
+                        
+                        int xbpe = 0;
+                        
+                        if(src.IsIndexed)
+                            xbpe+=8;
+                        if(src.IsBaseRelative)
+                            xbpe+=4;
+                        if(src.IsPCRelative)
+                            xbpe+=2;
+                        if(src.IsExtended)
+                            xbpe+=1;
+                        
+                        
+                        
                         //operand specified
+                        
                         if (src.Operand != null && src.Operand.compareTo("") != 0) {
-                            System.out.println(String.format("%06x: %2s0000 %s", src.Position, src.AssembledLine, src.Source));
+                        
+                            String operand;
+                            if(src.IsIndexed)
+                                 operand = src.Operand.substring(0, src.Operand.indexOf(','));
+                            else
+                                operand = src.Operand;
+                            
+                            HashValue hashedSymbol = _symbolTable.Find(operand);
+                            SourceCodeLine srcOperand;
+                            if(hashedSymbol!= null)
+                            {
+                                srcOperand = (SourceCodeLine) hashedSymbol.Value;
+                                
+                                offset = GetPositionDifference(pc, srcOperand.Position);
+                                
+                            }
                         }
+
+                        src.AssembledLine = String.format("%02x%x%03x",src.AssembledHex, xbpe, offset );
+                        
+                        
+                        System.out.println(String.format("%06x: %6s %s ", src.Position,src.AssembledLine, src.Source));
+
                     } else {
                         HashValue preproc = _preprocs.Find(src.Operator);
                         if(preproc != null)
@@ -486,6 +524,9 @@ public class Proj4 {
             }
         }
 
+        
+        
+        
         //print out of source file
 //        System.out.println("\n--------------------------");
 //        System.out.println("Source Code File:");
@@ -517,6 +558,12 @@ public class Proj4 {
                 //System.out.println(String.format("Symbol %s \t with memory location %s  stored at position %d", hash.Key, Integer.toHexString(srcLine.Position), hash.Position));
             }
         }
+    }
+    
+    
+    private int GetPositionDifference(int pos1, int pos2){
+
+        return pos2 - pos1;
     }
 
     private int BoolToInt(Boolean bool) {
@@ -781,7 +828,7 @@ class SourceCodeLine {
     Boolean IsImmediate = false;
     Boolean IsIndirect = false;
     Boolean IsIndexed = false;
-    Boolean IsPCRelative = false;
+    Boolean IsPCRelative = true;
     Boolean IsBaseRelative = false;
     //if a command isn't preproc,
     //it's a sicop
