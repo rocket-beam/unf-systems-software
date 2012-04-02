@@ -124,7 +124,7 @@ public class Proj3 {
                             if (line.contains("=X'")) {
                                 literal = line.substring(line.indexOf("=X'"), line.lastIndexOf("'") + 1);
                             } else {
-                                literal = line.substring(line.indexOf("=C'"), line.lastIndexOf("'") +1);
+                                literal = line.substring(line.indexOf("=C'"), line.lastIndexOf("'") + 1);
                             }
 
                             _literals.Add(literal, literal);
@@ -159,17 +159,11 @@ public class Proj3 {
                                 }
                             }
 
-                            if (length > 18) {
-                                switch (line.substring(18, 19).trim()) {
-                                    case "@":
-                                        src.IsIndirect = true;
-                                        break;
-                                    case "#":
-                                        src.IsImmediate = true;
-                                        break;
-                                    default:
-                                        break;
-                                }
+
+                            if (length > 7) {
+                                src.Label = line.substring(0, 7).trim();
+                            } else {
+                                src.Label = line.substring(0).trim();
                             }
 
                             if (line.length() > 19) {
@@ -184,13 +178,9 @@ public class Proj3 {
                                 src.Comment = line.substring(29).trim();
                             }
 
-                            switch (src.Nemonic.trim().toLowerCase()) {
-                                case "start":
-                                    startPosition = HexToInt(src.Operand);
-                                    currentPosition = startPosition;
-                                    break;
-                                default:
-                                    break;
+                            if (src.Nemonic.trim().toLowerCase().compareTo("start") == 0) {
+                                startPosition = HexToInt(src.Operand);
+                                currentPosition = startPosition;
                             }
 
                             if (startPosition == 0) {
@@ -216,23 +206,22 @@ public class Proj3 {
                                 currentPosition += 1;
                             }
 
-                            switch (src.Nemonic.toLowerCase().trim()) {
-                                case "word":
-                                    currentPosition += 3;
-                                    break;
-                                case "resw":
-                                    try {
-                                        currentPosition += Integer.parseInt(src.Operand) * 3;
-                                    } catch (Exception ex) {
-                                        System.out.println("Error Parsing RESW value");
-                                    }
-                                    break;
-                                case "resb":
-                                    try {
-                                        currentPosition += Integer.parseInt(src.Operand);
-                                    } catch (Exception ex) {
-                                        System.out.println("Error Parsing RESB value");
-                                    }
+                            String storageNemonic = src.Nemonic.toLowerCase().trim();
+                            
+                            if (storageNemonic.compareTo("word") == 0) {
+                                currentPosition += 3;
+                            } else if (storageNemonic.compareTo("resw") == 0) {
+                                try {
+                                    currentPosition += Integer.parseInt(src.Operand) * 3;
+                                } catch (Exception ex) {
+                                    System.out.println("Error Parsing RESW value");
+                                }
+                            } else if (storageNemonic.compareTo("resb") == 0) {
+                                try {
+                                    currentPosition += Integer.parseInt(src.Operand);
+                                } catch (Exception ex) {
+                                    System.out.println("Error Parsing RESB value");
+                                }
                             }
 
 
@@ -247,34 +236,34 @@ public class Proj3 {
                         }
                     }
 
-                    
+
                     _src[currentLineNumber] = src;
 
-                    if(line.contains("LTORG")){
-                        for(int i=0;i<_literals.length();i++)
-                            if(_literals._hash[i] != null){
-                                String literalValue = (String)_literals._hash[i].Value;
+                    if (line.contains("LTORG")) {
+                        for (int i = 0; i < _literals.length(); i++) {
+                            if (_literals._hash[i] != null) {
+                                String literalValue = (String) _literals._hash[i].Value;
                                 SourceCodeLine literal = new SourceCodeLine();
-                                
-                                literal.Operand = literalValue.substring(literalValue.indexOf("'")+1, literalValue.lastIndexOf("'")) ;
+
+                                literal.Operand = literalValue.substring(literalValue.indexOf("'") + 1, literalValue.lastIndexOf("'"));
                                 literal.Nemonic = "BYTE";
-                                
+
                                 literal.Position = currentPosition;
-                                
-                                if(literalValue.contains("=C")){
+
+                                if (literalValue.contains("=C")) {
                                     literal.Source = String.format("%s\t Byte %x", literalValue, new BigInteger(literal.Operand.getBytes()));
                                     currentPosition += literal.Operand.length();
-                                }
-                                else{
+                                } else {
                                     literal.Source = String.format("%s\t Byte %s", literalValue, literal.Operand);
-                                    currentPosition += (int)(literal.Operand.length()/2+0.5);
+                                    currentPosition += (int) (literal.Operand.length() / 2 + 0.5);
                                 }
-                                
+
                                 currentLineNumber++;
                                 _src[currentLineNumber] = literal;
                             }
+                        }
                     }
-                    
+
                     if (out.length() > 0) {
                         System.out.println(out);
                     }
