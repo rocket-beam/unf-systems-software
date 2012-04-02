@@ -16,7 +16,9 @@ SEC       WORD     -11
 NUM       RESW     1
 ANS       RESW     2
 ONE       WORD     13
-BIG       RESW     1000
+BIG       WORD     0
 B         RESW     1
           LTORG    
+          LDS     =C'FANCY'
+          LDS     =C'SUPER'
           END      EXA
