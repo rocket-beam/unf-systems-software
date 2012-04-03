@@ -125,12 +125,3 @@ STI     D4    3   0
 JGT     34    3   0
 DIV     24    3   3
 +RD     D8    4   1
-A 0
-X 1
-L 2
-PC 8
-SW 9
-B 3
-S 4
-T 5
-F 6

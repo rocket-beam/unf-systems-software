@@ -21,4 +21,8 @@ B         RESW     1
           LTORG    
           LDS     =C'FANCY'
           LDS     =C'SUPER'
+          LTORG
+HELP      ADDR     T,A
+          ADD      SEC
+          STA      ANS,X
           END      EXA
