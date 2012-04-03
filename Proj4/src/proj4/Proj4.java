@@ -462,11 +462,14 @@ public class Proj4 {
 
                         //generates NI for second half-byte of address
                         src.AssembledHex = HexToInt(src.OpCode.OpCode);
-                        if (src.IsImmediate) {
-                            src.AssembledHex += 2;
-                        }
-                        if (src.IsIndirect) {
-                            src.AssembledHex += 1;
+
+                        if (!src.IsRegisterOp) {
+                            if (src.IsImmediate) {
+                                src.AssembledHex += 1;
+                            }
+                            if (src.IsIndirect) {
+                                src.AssembledHex += 2;
+                            }
                         }
 
 
