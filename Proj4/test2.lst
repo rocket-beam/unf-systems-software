@@ -1,0 +1,42 @@
+*********************************************
+University of North Florida: SIC/XE assembler
+version date 11/12/2002
+account: n00017788; Tue Apr  3 16:14:15 2012
+*********************************************
+ASSEMBLER REPORT
+----------------
+     Loc   Object Code       Source Code
+     ---   -----------       -----------
+001- 00100                   EXAM      START    100
+002- 00100 75000E            EXA       LDT     #14
+003- 00103 9050                        ADDR     T,A
+004- 00105 1B2019                      ADD      SEC
+005- 00108 0FA01C                      STA      ANS,X
+006- 0010B                             BASE     BIG
+007- 0010B 692022                      LDB     #BIG
+008- 0010E 6E201C                      LDS     @ONE
+009- 00111 0F100133                   +STA      B
+010- 00115 772021                      LDT     =X'1AB9'
+011- 00118 6F201B                      LDS     =C'EON'
+012- 0011B                             A EQU B
+********** ERROR: Unsupported opcode found in statement [#4 on line 12]
+013- 0011B 3E2FE2                      J       @EXA
+014- 0011E 4F0000                      RSUB
+015- 00121 FFFFF5            SEC       WORD     -11
+016- 00124                   NUM       RESW     1
+017- 00127                   ANS       RESW     2
+018- 0012D 00000D            ONE       WORD     13
+019- 00130 000000            BIG       WORD     0
+020- 00133                   B         RESW     1
+021- 00136                             LTORG    
++01+ 00136 454F4E            =C'EON'    BYTE    C'EON'
++02+ 00139 1AB9              =X'1AB9'   BYTE    X'1AB9'
+022- 0013B 6F2003                      LDS     =C'FANCY'
+023- 0013E 6F2005                      LDS     =C'SUPER'
+024- 00141                             LTORG
++01+ 00141 46414E4359        =C'FANCY'  BYTE    C'FANCY'
++02+ 00146 5355504552        =C'SUPER'  BYTE    C'SUPER'
+025- 0014B 9050              HELP      ADDR     T,A
+026- 0014D 1B2FD1                      ADD      SEC
+027- 00150 0FAFD4                      STA      ANS,X
+028- 00153                             END      EXA

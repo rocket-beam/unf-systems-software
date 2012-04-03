@@ -101,15 +101,15 @@ public class Proj4 {
     }
 
     public void InitRegisters() {
-        _registers.Add("A");
-        _registers.Add("X");
-        _registers.Add("L");
-        _registers.Add("PC");
-        _registers.Add("SW");
-        _registers.Add("B");
-        _registers.Add("S");
-        _registers.Add("T");
-        _registers.Add("F");
+        _registers.Add("A", 0);
+        _registers.Add("X", 1);
+        _registers.Add("L", 2);
+        _registers.Add("PC", 8);
+        _registers.Add("SW", 9);
+        _registers.Add("B", 3);
+        _registers.Add("S", 4);
+        _registers.Add("T", 5);
+        _registers.Add("F", 6);
     }
 
     public void AssemblePass1(String inputFile) {
@@ -498,8 +498,12 @@ public class Proj4 {
                                 for (int j = 0; j < registers.length; j++) {
                                     HashValue reg = _registers.Find(registers[j]);
 
-                                    src.AssembledLine += ((String) (reg.Value));
-
+                                    try{
+                                        src.AssembledLine += (String.format("%d", reg.Value));
+                                    }
+                                    catch(Exception ex){
+                                        
+                                    }
                                     if (reg == null) {
                                         src.HasError = true;
                                         src.ErrorMessage = "Invalid register specified.";
@@ -584,6 +588,10 @@ public class Proj4 {
                                 }
                             }
                         }
+                        else{
+                            //operand not specified
+                            src.AssembledLine = String.format("%2X0000", src.AssembledHex );
+                        }
                     } else {
                         HashValue preproc = _preprocs.Find(src.Operator);
                         if (preproc != null) {
@@ -596,13 +604,32 @@ public class Proj4 {
                             src.ErrorMessage = "Error finding Opcode for line: " + src.Source;
                         }
                     }
-
-                    if (src.OpCode != null) {
-                        SicOperation opCode = src.OpCode;
-                    }
                 } else {
                     if (src.IsAddressOperation) {
-                        if ((src.IsIndirect && src.IsImmediate) || (!src.IsIndirect && !src.IsImmediate)) {
+                        if(src.IsLiteral){
+                            String literalValue = src.Operand;
+                            
+                            if(literalValue.contains("=C'"))
+                            {
+                                literalValue= literalValue.substring(literalValue.indexOf("=C'")+3, literalValue.lastIndexOf("'"));
+                                src.AssembledLine = String.format("%x", new BigInteger(literalValue.getBytes()));
+                            }
+                            else if(literalValue.contains("=X'"))
+                            {
+                                literalValue= literalValue.substring(literalValue.indexOf("=X'")+3, literalValue.lastIndexOf("'"));
+                                try{
+                                    Integer hex = HexToInt(literalValue);
+                                }
+                                catch(Exception ex){
+                                    src.HasError = true;
+                                    src.ErrorMessage = "Invalid Hex value specified in literal";
+                                }
+                                
+                                src.AssembledLine = String.format("%s", literalValue);
+                            }
+                            
+                        }
+                        else if ((src.IsIndirect && src.IsImmediate) || (!src.IsIndirect && !src.IsImmediate)) {
                             Integer iOperand;
                             Integer opLength = (int) (src.Size);
                             try {
@@ -621,6 +648,8 @@ public class Proj4 {
                                 src.AssembledLine = String.format("%" + opLength + "s", src.Operand);
                             }
                         }
+                        
+                        
                     }
                 }
 
@@ -686,23 +715,27 @@ public class Proj4 {
 
                 SourceCodeLine literal = new SourceCodeLine();
 
-                literal.Operand = literalValue.substring(literalValue.indexOf("'") + 1, literalValue.lastIndexOf("'"));
+                literal.Operand = literalValue;
                 literal.IsAddressOperation = true;
                 literal.Label = literalValue;
                 literal.Address = currentPosition;
                 literal.OpModifier = '=';
-
+                literal.IsLiteral = true;
+                
                 if (literalValue.contains("=C")) {
                     //converst literal operand from character string into hex
-                    literal.Operand = String.format("%x", new BigInteger(literal.Operand.getBytes()));
-
+                    
+                    literalValue= literalValue.substring(literalValue.indexOf("=C'")+3, literalValue.lastIndexOf("'"));
+                    
                     literal.Source = String.format("%s BYTE     %s", StringExtension.setLength(literalValue, 9, ' '), literal.Operand);
-                    literal.Size = (int) (literal.Operand.length() / 2 + 0.5);
+                    literal.Size = (int) (literalValue.length());
                     currentPosition += literal.Size;
 
                 } else {
+                    
+                    literalValue= literalValue.substring(literalValue.indexOf("=X'")+3, literalValue.lastIndexOf("'"));
                     literal.Source = String.format("%s BYTE     %s", StringExtension.setLength(literalValue, 9, ' '), literal.Operand);
-                    literal.Size = (int) (literal.Operand.length() / 2 + 0.5);
+                    literal.Size = (int) (literalValue.length() / 2 + 0.5);
                     currentPosition += literal.Size;
                 }
 
@@ -986,6 +1019,7 @@ class SourceCodeLine {
     Boolean IsIndexed = false;
     Boolean IsPCRelative = true;
     Boolean IsBaseRelative = false;
+    Boolean IsLiteral = false;
     //if the boolean is a reserved word/byte
     Boolean IsReservedAddress = false;
     //if a command isn't preproc,
