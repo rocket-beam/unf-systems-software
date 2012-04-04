@@ -4,10 +4,7 @@
  */
 package proj4;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigInteger;
 
 /**
@@ -19,6 +16,8 @@ public class Proj4 {
     protected int _sicOpsTableSize = 200;
     protected int _symbolTableSize = 50;
     protected int _defaultStartPosition = 100;
+    private boolean truncateLiterals = true;
+    private int maxLiteralSize = 6;
     private HashTable _sicOps = new HashTable(_sicOpsTableSize);
     private HashTable _preprocs = new HashTable(20);
     private HashTable _symbolTable = new HashTable(_symbolTableSize);
@@ -26,7 +25,7 @@ public class Proj4 {
     private HashTable _literals = new HashTable(3);
     private HashTable _regOps = new HashTable(6);
     private HashTable _registers = new HashTable(10);
-    static String _projectName="p4";
+    static String _projectName = "p4";
     static int startPosition = 0;
     static int pc = 0;
     static int base = -1;
@@ -114,6 +113,8 @@ public class Proj4 {
     }
 
     public void AssemblePass1(String inputFile) {
+
+
 
         _projectName = inputFile;
 
@@ -240,12 +241,19 @@ public class Proj4 {
                                     char literalMod = src.Operand.toCharArray()[0];
 
                                     if (literalMod == 'X' || literalMod == 'C') {
+
+
                                         if (literalMod == 'X') {
                                             literal = line.substring(line.indexOf("=X'"), line.lastIndexOf("'") + 1);
                                         } else if (src.Operand.toCharArray()[0] == 'C') {
 
                                             literal = line.substring(line.indexOf("=C'"), line.lastIndexOf("'") + 1);
                                         }
+
+
+
+
+                                        src.Operand = literal;
 
                                         _literals.Add(literal, literal);
 
@@ -532,7 +540,7 @@ public class Proj4 {
 
                                     //if (!src.IsImmediate || (src.IsImmediate && src.IsIndirect) {
 
-                                    offset = GetPositionDifference(pc, GetRealAddress(srcOperand));
+                                    offset = GetPositionDifference(pc, srcOperand.Address);
 
                                     if (offset > pcMax || offset < pcMin) {
                                         if (base == -1) {
@@ -599,6 +607,9 @@ public class Proj4 {
                                     addrSize = 5;
                                 }
 
+                                if (src.IsImmediate && !src.IsIndirect) {
+                                    xbpe = 0;
+                                }
 
                                 if (!src.IsExtended) {
                                     src.Offset = offset;
@@ -687,7 +698,7 @@ public class Proj4 {
                 }
             }
         }
-        
+
         PrintToFile();
 
         for (int i = 0; i < _symbolTable.length(); i++) {
@@ -698,62 +709,110 @@ public class Proj4 {
             }
         }
     }
-    
-    public boolean PrintToFile(){
+
+    public boolean PrintToFile() {
         return PrintToFile(_projectName);
     }
-    public boolean PrintToFile(String projectName){
-        
-            String outputListFileName = projectName + ".lst";
-            String outputObjFileName = projectName + ".obj";
+
+    public boolean PrintToFile(String projectName) {
+
+        String outputListFileName = projectName + ".lst";
+        String outputObjFileName = projectName + ".obj";
+
+        SourceCodeLine src;
+
+        int maxAssebledLineLength = 0;
+
+        for (int i = 0; i < _src.length; i++) {
+            src = _src[i];
+            if (src != null) {
+                maxAssebledLineLength = maxAssebledLineLength < src.AssembledLine.length() ? src.AssembledLine.length() : maxAssebledLineLength;
+            }
+        }
+
+
+        try {
+
+            File outputListFile = new File(outputListFileName);
+            File outputObjFile = new File(outputObjFileName);
+
+            if (outputListFile.exists()) {
+                outputListFile.delete();
+            }
+
+            if (outputObjFile.exists()) {
+                outputObjFile.delete();
+            }
+
+            FileWriter fw = new FileWriter(outputListFileName);
+            FileWriter fw2 = new FileWriter(outputObjFileName);
+
+            BufferedWriter bw = new BufferedWriter(fw);
+            BufferedWriter bw2 = new BufferedWriter(fw2);
+
+            String startPosition = "";
             
+            boolean writeStartOp= false;
             
-            try {
-                
-                FileReader fr = new FileReader(outputListFileName);
-                BufferedReader br = new BufferedReader(fr);
+            for (int i = 0; i < _src.length; i++) {
+                 src = _src[i];
+                if (src != null) {
+                   
+                    bw.write(String.format("%03d   %05X: %S %S ", i, src.Address, StringExtension.setLength(src.AssembledLine, maxAssebledLineLength, ' '), src.Source));
+                    bw.newLine();
 
-                String line;
-
-                while ((line = br.readLine()) != null) {
-                    //System.out.println(line);
-
-                    String[] lineTokens = line.split("\\s+");
-
-                    //String out = String.format("Processing Line %s", line);
-                    //if there are more than one value on the line,
-                    //assume that the line represents a value to store into 
-                    //the hash table
-                    if (lineTokens.length > 2) {
-
-                        SicOperation item = new SicOperation();
-                        HashValue hash = new HashValue();
-
-                        //set Key/value pair for dictionary item
-                        hash.Key = lineTokens[0];
-                        item.OpCode = lineTokens[1];
-                        item.Size = Integer.parseInt(lineTokens[2]);
-
-                        hash.Value = item;
-
-                        _sicOps.Add(hash);
-                        //hash Key value
-
-//                        out += ", stored in position " + hashValue + "!";
-                    } else {
-                        if (lineTokens.length == 2) {
+                     
+                    if(writeStartOp){
+                        bw2.write(String.format("%06X", src.Address));
+                        bw2.newLine();
+                        bw2.write(startPosition);
+                        bw2.newLine();
+                        writeStartOp = false;
+                    }
+                    
+                    if (!src.IsPreproc && !src.IsReservedAddress) {
+                        if(src.AssembledLine.trim().length()>0)
+                        {bw2.write(String.format("%S ", src.AssembledLine));
+                        
+                           bw2.newLine();
                         }
+                    } else {
+                        
+                        if(src.IsReservedAddress || src.Operator.compareToIgnoreCase("END")==0){
+                            bw2.write("!");
+                            writeStartOp = true;
+                            
+                            bw2.newLine();
+                        }
+                        
+                        if(src.Operator.compareToIgnoreCase("START")==0){
+                            startPosition = String.format("%06X ", src.Address);
+                            bw2.write(startPosition);
+                            bw2.newLine();
+                            bw2.write("000000");
+                            writeStartOp = false;
+                            
+                        bw2.newLine();
+                        }
+                        
                     }
 
-
                 }
-            } catch (FileNotFoundException ex) {
-                return false;
-            } catch (IOException ex) {
-                System.out.println("There was an error writing the output file file:" + ex.getMessage());
-                return false;
             }
-        
+
+            bw.close();
+            fw.close();
+            bw2.close();
+            fw2.close();
+
+        } catch (FileNotFoundException ex) {
+            return false;
+        } catch (IOException ex) {
+            System.out.println("There was an error writing the output file file:" + ex.getMessage());
+            return false;
+        }
+
+
         return true;
     }
 
@@ -812,29 +871,35 @@ public class Proj4 {
                 literal.OpModifier = '=';
                 literal.IsLiteral = true;
 
+
+                int maxLiteralSize = 10;
+
                 if (literalValue.contains("=C")) {
                     //converst literal operand from character string into hex
 
-                    literalValue = literalValue.substring(literalValue.indexOf("=C'") + 3, literalValue.lastIndexOf("'"));
+                    //literalValue = literalValue.substring(literalValue.indexOf("=C'") + 3, literalValue.lastIndexOf("'"));
 
-                    if(literalValue.length()<=9)
-                        literal.Source = String.format("%s BYTE     %s", StringExtension.setLength(literalValue, 9, ' '), literal.Operand);
-                    else
-                        literal.Source = String.format("%s BYTE     %s", literalValue, literal.Operand);
-                    
-                    literal.Size = (int) (literalValue.length());
+                    if (literalValue.length() <= maxLiteralSize) {
+                        literal.Source = String.format("%s BYTE     %s", StringExtension.setLength(literalValue, maxLiteralSize, ' '), literal.Operand);
+                    } else {
+                        literal.Source = String.format("%s BYTE     %s", literalValue.substring(0, maxLiteralSize), literal.Operand);
+                    }
+
+                    literal.Size = (int) (literalValue.substring(literalValue.indexOf("'") + 1, literalValue.lastIndexOf("'")).length());
                     currentPosition += literal.Size;
 
                 } else {
 
-                    literalValue = literalValue.substring(literalValue.indexOf("=X'") + 3, literalValue.lastIndexOf("'"));
-                    
-                    if(literalValue.length()<=9)
-                        literal.Source = String.format("%s BYTE     %s", StringExtension.setLength(literalValue, 9, ' '), literal.Operand);
-                    else
-                        literal.Source = String.format("%s BYTE     %s", literalValue, literal.Operand);
-                    
-                    literal.Size = (int) (literalValue.length() / 2 + 0.5);
+
+                    //literalValue = literalValue.substring(literalValue.indexOf("=X'") + 3, literalValue.lastIndexOf("'"));
+
+                    if (literalValue.length() <= maxLiteralSize) {
+                        literal.Source = String.format("%s BYTE     %s", StringExtension.setLength(literalValue, maxLiteralSize, ' '), literal.Operand);
+                    } else {
+                        literal.Source = String.format("%s BYTE     %s", literalValue.substring(0, maxLiteralSize), literal.Operand);
+                    }
+
+                    literal.Size = (int) (literalValue.substring(literalValue.indexOf("'") + 1, literalValue.lastIndexOf("'")).length() / 2 + 0.5);
                     currentPosition += literal.Size;
                 }
 
@@ -1153,19 +1218,19 @@ class SourceCodeLine {
         }
 
         if (src.OpCode != null) {
-            s = String.format("%06X:\t" + StringExtension.setLength(src.AssembledLine, 10, ' ') + "%S", src.Address, src.Source);
+            s = String.format("%05X:    " + StringExtension.setLength(src.AssembledLine, 10, ' ') + "%S", src.Address, src.Source);
         } else {
             if (IsPreproc) {
-                s = String.format("%06X:\t" + StringExtension.setLength("", 10, ' ') + "%S ", Address, Source);
+                s = String.format("%05X:    " + StringExtension.setLength("", 10, ' ') + "%S ", Address, Source);
             } else if (IsAddressOperation) {
-                s = String.format("%06X:\t" + StringExtension.setLength(src.AssembledLine, 10, ' ') + "%S ", src.Address, src.Source);
+
+                s = String.format("%05X:    " + StringExtension.setLength(src.AssembledLine, 10, ' ') + "%S ", src.Address, src.Source);
             }
 
             if (!IsPreproc && !IsAddressOperation) {
-                s = String.format("%06x:" + StringExtension.setLength("", 15, ' ') + "%s", src.Address, src.Source);
+                s = String.format("%05x:    " + StringExtension.setLength("", 15, ' ') + "%s", src.Address, src.Source);
             }
         }
-
 
 
         if (src.HasError) {
