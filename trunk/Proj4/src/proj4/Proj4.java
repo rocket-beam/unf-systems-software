@@ -26,6 +26,7 @@ public class Proj4 {
     private HashTable _literals = new HashTable(3);
     private HashTable _regOps = new HashTable(6);
     private HashTable _registers = new HashTable(10);
+    static String _projectName="p4";
     static int startPosition = 0;
     static int pc = 0;
     static int base = -1;
@@ -114,6 +115,7 @@ public class Proj4 {
 
     public void AssemblePass1(String inputFile) {
 
+        _projectName = inputFile;
 
         String out = "";
 
@@ -498,11 +500,9 @@ public class Proj4 {
                                 for (int j = 0; j < registers.length; j++) {
                                     HashValue reg = _registers.Find(registers[j]);
 
-                                    try{
+                                    try {
                                         src.AssembledLine += (String.format("%d", reg.Value));
-                                    }
-                                    catch(Exception ex){
-                                        
+                                    } catch (Exception ex) {
                                     }
                                     if (reg == null) {
                                         src.HasError = true;
@@ -523,33 +523,50 @@ public class Proj4 {
                                 }
 
                                 SourceCodeLine srcOperand;
+
+
+                                //if the operand exists within the symbol table
+                                //load the operand and go forth and conquer.
                                 if (hashedSymbol != null) {
                                     srcOperand = (SourceCodeLine) hashedSymbol.Value;
 
-                                    if (!src.IsImmediate || (src.IsImmediate && src.IsIndirect)) {
-                                        offset = GetPositionDifference(pc, GetRealAddress(srcOperand));
+                                    //if (!src.IsImmediate || (src.IsImmediate && src.IsIndirect) {
 
-                                        if (offset > pcMax || offset < pcMin) {
-                                            if (base == -1) {
+                                    offset = GetPositionDifference(pc, GetRealAddress(srcOperand));
+
+                                    if (offset > pcMax || offset < pcMin) {
+                                        if (base == -1) {
+                                            src.HasError = true;
+                                            src.ErrorMessage = "Address offset too large for PC addressing and BASE not defined.";
+                                        } else {
+                                            offset = GetPositionDifference(base, srcOperand.Address);
+                                            if (offset < baseMin || offset > baseMax) {
+
                                                 src.HasError = true;
-                                                src.ErrorMessage = "Address offset too large for PC addressing and BASE not defined.";
+                                                src.ErrorMessage = "Address offset too large for BASE  && PC addressing";
                                             } else {
-                                                offset = GetPositionDifference(base, srcOperand.Address);
-                                                if (offset < baseMin || offset > baseMax) {
-
-                                                    src.HasError = true;
-                                                    src.ErrorMessage = "Address offset too large for BASE  && PC addressing";
-                                                } else {
-                                                    src.IsBaseRelative = true;
-                                                    src.IsPCRelative = false;
-                                                }
+                                                src.IsBaseRelative = true;
+                                                src.IsPCRelative = false;
                                             }
                                         }
+                                    } else if (src.IsExtended) {
+                                        offset = srcOperand.Address;
+                                    } else if (src.IsImmediate) {
                                     }
+//                                    }
+//                                    else{
+//                                        if(src.IsImmediate)
+//                                        {
+//                                            offset = srcOperand.Address;
+//                                        }
+//                                    }
                                 } else {
+                                    //if the operand is an int do this.
                                     try {
-                                        int op = Integer.parseInt(src.Operand);
-                                        offset = GetRealAddress(src);
+                                        if (!src.IsLiteral) {
+                                            int op = Integer.parseInt(src.Operand);
+                                            offset = op;
+                                        }
                                     } catch (Exception ex) {
                                         src.HasError = true;
                                         src.ErrorMessage = "Invalid operand specified for immediate addressing.";
@@ -565,6 +582,9 @@ public class Proj4 {
                                 //generates XBPE half-byte for src code
                                 int xbpe = 0;
 
+
+                                int addrSize = 3;
+
                                 if (src.IsIndexed) {
                                     xbpe += 8;
                                 }
@@ -576,21 +596,38 @@ public class Proj4 {
                                 }
                                 if (src.IsExtended) {
                                     xbpe += 1;
+                                    addrSize = 5;
                                 }
 
-                                src.Offset = offset;
 
-                                String offsetString = String.format("%03X", offset);
-                                if (!src.HasError) {
-                                    src.AssembledLine = String.format("%02X%X%S", src.AssembledHex, xbpe, offsetString.substring(offsetString.length() - 3));
+                                if (!src.IsExtended) {
+                                    src.Offset = offset;
+
+
+                                    String offsetString = String.format("%03X", offset);
+
+                                    if (addrSize - offsetString.length() > 0) {
+                                        offsetString = String.format("%s%s", StringExtension.setLength("", addrSize - offsetString.length(), '0'), offsetString);
+                                    } else {
+                                        offsetString = String.format("%s", offsetString);
+                                    }
+
+                                    if (offsetString.length() > addrSize) {
+                                        offsetString = offsetString.substring(offsetString.length() - addrSize);
+                                    }
+
+                                    if (!src.HasError) {
+                                        src.AssembledLine = String.format("%02X%X%" + addrSize + "S", src.AssembledHex, xbpe, offsetString);
+                                    } else {
+                                        src.AssembledLine = "";
+                                    }
                                 } else {
-                                    src.AssembledLine = "";
+                                    src.AssembledLine = String.format("%02X%X%05X", src.AssembledHex, xbpe, offset);
                                 }
                             }
-                        }
-                        else{
+                        } else {
                             //operand not specified
-                            src.AssembledLine = String.format("%2X0000", src.AssembledHex );
+                            src.AssembledLine = String.format("%2X0000", src.AssembledHex);
                         }
                     } else {
                         HashValue preproc = _preprocs.Find(src.Operator);
@@ -606,30 +643,26 @@ public class Proj4 {
                     }
                 } else {
                     if (src.IsAddressOperation) {
-                        if(src.IsLiteral){
-                            String literalValue = src.Operand;
-                            
-                            if(literalValue.contains("=C'"))
-                            {
-                                literalValue= literalValue.substring(literalValue.indexOf("=C'")+3, literalValue.lastIndexOf("'"));
+
+                        if (src.IsLiteral) {
+                            String literalValue = src.OpModifier + src.Operand;
+
+                            if (literalValue.contains("=C'")) {
+                                literalValue = literalValue.substring(literalValue.indexOf("=C'") + 3, literalValue.lastIndexOf("'"));
                                 src.AssembledLine = String.format("%x", new BigInteger(literalValue.getBytes()));
-                            }
-                            else if(literalValue.contains("=X'"))
-                            {
-                                literalValue= literalValue.substring(literalValue.indexOf("=X'")+3, literalValue.lastIndexOf("'"));
-                                try{
+                            } else if (literalValue.contains("=X'")) {
+                                literalValue = literalValue.substring(literalValue.indexOf("=X'") + 3, literalValue.lastIndexOf("'"));
+                                try {
                                     Integer hex = HexToInt(literalValue);
-                                }
-                                catch(Exception ex){
+                                } catch (Exception ex) {
                                     src.HasError = true;
                                     src.ErrorMessage = "Invalid Hex value specified in literal";
                                 }
-                                
+
                                 src.AssembledLine = String.format("%s", literalValue);
                             }
-                            
-                        }
-                        else if ((src.IsIndirect && src.IsImmediate) || (!src.IsIndirect && !src.IsImmediate)) {
+
+                        } else if ((src.IsIndirect && src.IsImmediate) || (!src.IsIndirect && !src.IsImmediate)) {
                             Integer iOperand;
                             Integer opLength = (int) (src.Size);
                             try {
@@ -648,16 +681,14 @@ public class Proj4 {
                                 src.AssembledLine = String.format("%" + opLength + "s", src.Operand);
                             }
                         }
-                        
-                        
+
+
                     }
                 }
-
-                System.out.println(src.ToString());
             }
-
         }
-
+        
+        PrintToFile();
 
         for (int i = 0; i < _symbolTable.length(); i++) {
             if (_symbolTable._hash[i] != null) {
@@ -666,6 +697,63 @@ public class Proj4 {
                 //System.out.println(String.format("Symbol %s \t with memory location %s  stored at position %d", hash.Key, Integer.toHexString(srcLine.Address), hash.Address));
             }
         }
+    }
+    
+    public boolean PrintToFile(){
+        return PrintToFile(_projectName);
+    }
+    public boolean PrintToFile(String projectName){
+        
+            String outputListFileName = projectName + ".lst";
+            String outputObjFileName = projectName + ".obj";
+            
+            
+            try {
+                FileReader fr = new FileReader(inputFileName);
+                BufferedReader br = new BufferedReader(fr);
+
+                String line;
+
+                while ((line = br.readLine()) != null) {
+                    //System.out.println(line);
+
+                    String[] lineTokens = line.split("\\s+");
+
+                    //String out = String.format("Processing Line %s", line);
+                    //if there are more than one value on the line,
+                    //assume that the line represents a value to store into 
+                    //the hash table
+                    if (lineTokens.length > 2) {
+
+                        SicOperation item = new SicOperation();
+                        HashValue hash = new HashValue();
+
+                        //set Key/value pair for dictionary item
+                        hash.Key = lineTokens[0];
+                        item.OpCode = lineTokens[1];
+                        item.Size = Integer.parseInt(lineTokens[2]);
+
+                        hash.Value = item;
+
+                        _sicOps.Add(hash);
+                        //hash Key value
+
+//                        out += ", stored in position " + hashValue + "!";
+                    } else {
+                        if (lineTokens.length == 2) {
+                        }
+                    }
+
+
+                }
+            } catch (FileNotFoundException ex) {
+                return false;
+            } catch (IOException ex) {
+                System.out.println("There was an error writing the output file file:" + ex.getMessage());
+                return false;
+            }
+        
+        return true;
     }
 
     private int GetRealAddress(SourceCodeLine src) {
@@ -692,13 +780,14 @@ public class Proj4 {
                 src.ErrorMessage = "No operand specified in indirect address";
 
             } else {
-                HashValue h = _symbolTable.Find(src.Operand);
-                if (h != null) {
-                    return ((SourceCodeLine) (h.Value)).Address;
-                } else {
-                    src.HasError = true;
-                    src.ErrorMessage = "Error finding specified operand";
-                }
+                return src.Address;
+//                HashValue h = _symbolTable.Find(src.Operand);
+//                if (h != null) {
+//                    return ((SourceCodeLine) (h.Value)).Address;
+//                } else {
+//                    src.HasError = true;
+//                    src.ErrorMessage = "Error finding specified operand";
+//                }
             }
         }
 
@@ -715,26 +804,35 @@ public class Proj4 {
 
                 SourceCodeLine literal = new SourceCodeLine();
 
-                literal.Operand = literalValue;
+                literal.Operand = literalValue.substring(1);
                 literal.IsAddressOperation = true;
                 literal.Label = literalValue;
                 literal.Address = currentPosition;
                 literal.OpModifier = '=';
                 literal.IsLiteral = true;
-                
+
                 if (literalValue.contains("=C")) {
                     //converst literal operand from character string into hex
+
+                    literalValue = literalValue.substring(literalValue.indexOf("=C'") + 3, literalValue.lastIndexOf("'"));
+
+                    if(literalValue.length()<=9)
+                        literal.Source = String.format("%s BYTE     %s", StringExtension.setLength(literalValue, 9, ' '), literal.Operand);
+                    else
+                        literal.Source = String.format("%s BYTE     %s", literalValue, literal.Operand);
                     
-                    literalValue= literalValue.substring(literalValue.indexOf("=C'")+3, literalValue.lastIndexOf("'"));
-                    
-                    literal.Source = String.format("%s BYTE     %s", StringExtension.setLength(literalValue, 9, ' '), literal.Operand);
                     literal.Size = (int) (literalValue.length());
                     currentPosition += literal.Size;
 
                 } else {
+
+                    literalValue = literalValue.substring(literalValue.indexOf("=X'") + 3, literalValue.lastIndexOf("'"));
                     
-                    literalValue= literalValue.substring(literalValue.indexOf("=X'")+3, literalValue.lastIndexOf("'"));
-                    literal.Source = String.format("%s BYTE     %s", StringExtension.setLength(literalValue, 9, ' '), literal.Operand);
+                    if(literalValue.length()<=9)
+                        literal.Source = String.format("%s BYTE     %s", StringExtension.setLength(literalValue, 9, ' '), literal.Operand);
+                    else
+                        literal.Source = String.format("%s BYTE     %s", literalValue, literal.Operand);
+                    
                     literal.Size = (int) (literalValue.length() / 2 + 0.5);
                     currentPosition += literal.Size;
                 }
@@ -1002,6 +1100,8 @@ class SourceCodeLine {
     String AssembledLine = "";
     //Pass 2 assembled hex
     int AssembledHex;
+    int XBPE;
+    String AssembledAddress;
     //Pass 2 Address offset
     int Offset;
     //SIC Op code
@@ -1052,16 +1152,16 @@ class SourceCodeLine {
         }
 
         if (src.OpCode != null) {
-            s = String.format("%06X: %6S \t\t%S", src.Address, src.AssembledLine, src.Source);
+            s = String.format("%06X:\t" + StringExtension.setLength(src.AssembledLine, 10, ' ') + "%S", src.Address, src.Source);
         } else {
             if (IsPreproc) {
-                s = String.format("%06X:        \t\t%S ", Address, Source);
+                s = String.format("%06X:\t" + StringExtension.setLength("", 10, ' ') + "%S ", Address, Source);
             } else if (IsAddressOperation) {
-                s = String.format("%06X: %6S \t\t%S ", src.Address, AssembledLine, src.Source);
+                s = String.format("%06X:\t" + StringExtension.setLength(src.AssembledLine, 10, ' ') + "%S ", src.Address, src.Source);
             }
 
             if (!IsPreproc && !IsAddressOperation) {
-                s = String.format("%06x:        \t\t%s ", src.Address, src.Source);
+                s = String.format("%06x:" + StringExtension.setLength("", 15, ' ') + "%s", src.Address, src.Source);
             }
         }
 
