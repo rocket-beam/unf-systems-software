@@ -20,7 +20,7 @@ BIG       WORD     0
 B         RESW     1
           LTORG    
           LDS     =C'FANCY'
-          LDS     =C'SUPER'
+          LDS     =C'SUPERFANCY'
           LTORG
 HELP      ADDR     T,A
           ADD      SEC
