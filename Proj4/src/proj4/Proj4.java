@@ -310,11 +310,11 @@ public class Proj4 {
 
                             //designates whether the code is preproc or
                             //executable code.
-                            if (_preprocs.Find(nemonic) != null || line.toLowerCase().contains("equ")) {
-                                src.IsPreproc = true;
-                            } else {
-                                src.IsPreproc = false;
-                            }
+//                            if (_preprocs.Find(nemonic) != null || line.toLowerCase().contains("equ")) {
+//                                src.IsPreproc = true;
+//                            } else {
+//                                src.IsPreproc = false;
+//                            }
 
                             //determines whether the operation is a indexed operation
                             if (src.Operand.contains(",")) {
@@ -709,7 +709,8 @@ public class Proj4 {
             
             
             try {
-                FileReader fr = new FileReader(inputFileName);
+                
+                FileReader fr = new FileReader(outputListFileName);
                 BufferedReader br = new BufferedReader(fr);
 
                 String line;
