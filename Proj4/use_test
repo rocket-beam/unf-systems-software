@@ -1,0 +1,22 @@
+____ ________ EXAMP     START  000
+____ ________           LDA    FIRST
+____ ________           ADD    SEC
+____ ________          +STA    ANS
+____ ________ FIRST     WORD   4
+____ ________           USE    MINE
+____ ________           LDX    ONE
+____ ________           STA    ANS,X
+____ ________           RSUB
+____ ________ ONE       WORD   1
+____ ________           USE
+____ ________ RUN       LDX   #0
+____ ________           LDT    ONE
+____ ________ UP        LDA   #3
+____ ________           RMO    S,T
+____ ________           USE    MINE
+____ ________           RMO    X,A
+____ ________           JLT    UP
+____ ________ SEC       WORD   7
+____ ________ NUM       RESW   1
+____ ________ ANS       RESW   2
+____ ________           END    EXAMP

@@ -1,0 +1,24 @@
+EXAMPLE   START  000      
+          LDA    FIRST    
+          ADD    SEC      
+         +STA    ANS      
+          USE    HIS      
+          LDX    ONE      
+          STA    ANS,X    
+          RSUB            
+          USE    HERS     
+          LDX   #0 
+          LDT    ONE       
+UP        LDA   #3      
+          RMO    S,T 
+          USE    HIS       
+          RMO    X,A       
+          JLT    UP        
+          USE              
+FIRST     WORD   4         
+SEC       WORD   7         
+NUM       RESW   1         
+ANS       RESW   2           
+ONE       WORD   1         
+          END    EXAMPLE   
+
