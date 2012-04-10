@@ -1,0 +1,27 @@
+Note -- the beginning address for "HERS" was calculated off by 3, so the
+resulting displacements are off by 3 when "HERS" is involved.
+
+   ____ EXAMPLE   START  000      ____________
+   000_           LDA    FIRST    032007______
+   003_           ADD    SEC      1B2007______
+   006_          +STA    ANS      0F100013____
+   00A_           USE    HIS      ____________
+   000_           LDX    ONE      072FFA______
+   003_           STA    ANS,X    0FAFF1______
+   006_           RSUB            4F0000______
+   009_           USE    HERS     ____________
+  _000 RUN       LDX   #0         050000______
+  _003           LDT    ONE       772FEC______
+  _006 UP        LDA   #3         010003______
+  _009           RMO    S,T       AC45________
+  _00B           USE    HIS       ____________
+  _009           RMO    X,A       AC10________
+  _00B           JLT    UP        3B2003______
+  _00E           USE              ____________
+  _00A FIRST     WORD   4         ____________
+  _00D SEC       WORD   7         ____________
+  _010 NUM       RESW   1         ____________
+_013 ANS       RESW   2           ____________
+ 019__ ONE       WORD   1         ____________
+  _01C           END    EXAMPLE   ____________
+

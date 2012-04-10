@@ -2,31 +2,32 @@
 002   00100: 75000E               EXA       LDT     #14 
 003   00103: 9050                           ADDR     T,A 
 004   00105: 1B2019                         ADD      SEC 
-005   00108: 0FA01C                         STA      ANS,X 
-006   0010B:                                BASE     BIG 
-007   0010B: 690022                         LDB     #BIG 
-008   0010E: 6E201C                         LDS     @ONE 
-009   00111: 0F100133                      +STA      B 
-010   00115: 772021                         LDT     =X'1AB9' 
-011   00118: 6F201B                         LDS     =C'EON' 
-012   0011B:                                A EQU B 
+005   00108: 0FA29F                         STA      C,X 
+006   0010B:                                BASE    #BIG 
+007   0010B: 690274                         LDB     #BIG 
+008   0010E: 6E226E                         LDS     @ONE 
+009   00111: 0F1003AA                      +STA      C 
+010   00115: 772273                         LDT     =X'1AB9' 
+011   00118: 6F226D                         LDS     =C'EON' 
+012   0011B:                                .A EQU B 
 013   0011B: 3E2FE2                         J       @EXA 
 014   0011E: 4C0000                         RSUB 
 015   00121: FFFFF5               SEC       WORD     -11 
 016   00124:                      NUM       RESW     1 
-017   00127:                      ANS       RESW     2 
-018   0012D: 00000D               ONE       WORD     13 
-019   00130: 000000               BIG       WORD     0 
-020   00133:                      B         RESW     1 
-021   00136:                                LTORG     
-022   00136: 454F4E               =C'EON'    BYTE     C'EON' 
-023   00139: 1AB9                 =X'1AB9'   BYTE     X'1AB9' 
-024   0013B: 6F2003                         LDS     =C'FANCY' 
-025   0013E: 6F2005                         LDS     =C'SUPERFANCY' 
-026   00141:                                LTORG 
-027   00141: 46414E4359           =C'FANCY'  BYTE     C'FANCY' 
-028   00146: 535550455246414E4359 =C'SUPERFA BYTE     C'SUPERFANCY' 
-029   00150: 9050                 HELP      ADDR     T,A 
-030   00152: 1B2FCC                         ADD      SEC 
-031   00155: 0FAFCF                         STA      ANS,X 
-032   00158:                                END      EXA 
+017   00127:                      ANS       RESW     200 
+018   0037F: 00000D               ONE       WORD     13 
+019   00382: 000000               BIG       WORD     0 
+020   00385:                      B         RESW     1 
+021   00388:                                LTORG     
+022   00388: 454F4E               =C'EON'    BYTE     C'EON' 
+023   0038B: 1AB9                 =X'1AB9'   BYTE     X'1AB9' 
+024   0038D: 6F2003                         LDS     =C'FANCY' 
+025   00390: 6F2005                         LDS     =C'SUPERFANCY' 
+026   00393:                                LTORG 
+027   00393: 46414E4359           =C'FANCY'  BYTE     C'FANCY' 
+028   00398: 535550455246414E4359 =C'SUPERFA BYTE     C'SUPERFANCY' 
+029   003A2: 9050                 HELP      ADDR     T,A 
+030   003A4: 1B2D7A                         ADD      SEC 
+031   003A7: 0FAD7D                         STA      ANS,X 
+032   003AA: 000000               C         WORD     0 
+033   003AD:                                END      EXA 
