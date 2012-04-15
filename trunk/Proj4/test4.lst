@@ -1,0 +1,12 @@
+001   00000:        .TESTS DUPLICATE AND UNDEFINED LABEL 
+002   00005:        ADDRES    START    5          
+003   00005: 032003 NOW       LDA      BEGIN       .LOAD A WITH (BEGIN) 
+004   00008:        XXX       STA      THERE       .STORE (A) AT THERE (THERE DOESN'T EXIST) 
+********Invalid operand specified.******************
+005   0000B: 000002 BEGIN     WORD     2 
+006   0000E:        THE       RESW     1 
+007   00011:        BEGIN     RESW     2 
+********Duplicate Symbol Declaration!******************
+008   00017:        BEGIN     RESW     3 
+********Duplicate Symbol Declaration!******************
+009   00020:                  END      NOW 

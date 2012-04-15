@@ -1,7 +1,9 @@
-ADDRES    START    100         . tests duplicate and undefined label
-NOW       LDA      BEGIN       .oad A with (BEGIN)
-XXX       STA      THERE       .tore (A) at THERE
+.tests duplicate and undefined label
+ADDRES    START    5         
+NOW       LDA      BEGIN       .load A with (BEGIN)
+XXX       STA      THERE       .store (A) at THERE (THERE doesn't exist)
 BEGIN     WORD     2
 THE       RESW     1
 BEGIN     RESW     2
+BEGIN     RESW     3
           END      NOW

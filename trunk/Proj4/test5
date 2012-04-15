@@ -1,0 +1,31 @@
+EXAM      START    100
+EXA       LDT     #14
+          ADDR     T,A
+          ADD      SEC
+          STA      C,X
+          BASE    #BIG
+          LDB     #BIG
+          LDS     @ONE
+		  USE      HELP		
+         +STA      C
+          LDT     =X'1AB9'
+          LDS     =C'EON'
+          .a equ b
+          J       @EXA
+          RSUB
+SEC       WORD     -11
+NUM       RESW     1
+ANS       RESW     200
+ONE       WORD     13
+BIG       WORD     0
+B         RESW     1
+          USE
+          LTORG    
+          LDS     =C'FANCY'
+          LDS     =C'SUPERFANCY'
+          LTORG
+HELP      ADDR     T,A
+          ADD      SEC
+          STA      ANS,X
+C         WORD     0
+          END      EXA
