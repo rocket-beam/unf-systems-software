@@ -1,0 +1,23 @@
+001   00000:          EXAMPLE   START    000       
+002   00000: 032007             LDA      FIRST     
+003   00003: 1B2007             ADD      SEC       
+004   00006: 0F100013          +STA      ANS       
+005   0000A:          .          USE               
+006   0000A: 4+15/SEC FIRST     WORD     4+15/SEC          
+007   0000D: 00000A   SEC       WORD     FIRST          
+008   00010:          NUM       RESW     1          
+009   00013:          ANS       RESW     2            
+010   00019: 000030   ONE       WORD    @UP          
+011   0001C:                    END      EXAMPLE    
+012   0001C:          .          USE      HIS       
+013   0001C: 072FFA             LDX      ONE       
+014   0001F: 0FAFF1             STA      ANS,X     
+015   00022: 4F0000             RSUB               
+016   00025:          .          USE      HIS        
+017   00025: AC10               RMO      X,A        
+018   00027: 3B2006             JLT      UP         
+019   0002A:          .          USE      HERS      
+020   0002A: 050000             LDX     #0  
+021   0002D: 772FE9             LDT      ONE        
+022   00030: 010003   UP        LDA     #3       
+023   00033: AC45               RMO      S,T  
