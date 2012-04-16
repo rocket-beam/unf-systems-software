@@ -1332,13 +1332,13 @@ public class Proj4 {
                         break;
                     }
                     opStack.push(operand);
-                } else if (operand.equals("(")) {
-                    opStack.push(operand);
-                } else if (operand.equals(")")) {
-                    while (!opStack.empty() && !opStack.peek().equals("(")) {
-                        operations.add(opStack.pop());
-                    }
-                    opStack.pop();
+//                } else if (operand.equals("(")) {
+//                    opStack.push(operand);
+//                } else if (operand.equals(")")) {
+//                    while (!opStack.empty() && !opStack.peek().equals("(")) {
+//                        operations.add(opStack.pop());
+//                    }
+//                    opStack.pop();
                 } else {
                     if (!IsInteger(operand)) {
                         if (_symbolTable.Find(operand) != null) {
