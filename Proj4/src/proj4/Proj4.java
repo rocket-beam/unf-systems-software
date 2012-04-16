@@ -10,13 +10,14 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Stack;
+import java.util.List;
 
 /**
  *
  * @author e5008222
  */
 public class Proj4 {
-    
+
     protected int _sicOpsTableSize = 200;
     protected int _symbolTableSize = 50;
     protected int _defaultStartPosition = 100;
@@ -47,7 +48,7 @@ public class Proj4 {
         if (args.length > 0) {
             String opFileName = "SicOps.dat";
             String inputFile;
-            
+
             if (args.length > 1) {
                 opFileName = args[0];
                 inputFile = args[1];
@@ -57,7 +58,7 @@ public class Proj4 {
 
             //load opcodes into opcode hashtable
             Proj4 proj = new Proj4();
-            
+
             if (proj.LoadOpCodes(opFileName)) {
                 System.out.println("Op codes loaded!");
                 proj.InitPreprocessorCommands();
@@ -67,19 +68,19 @@ public class Proj4 {
                 proj.InitRegisters();
                 proj.InitOperators();
                 System.out.println("Registers Loaded!");
-                
+
                 if (inputFile.length() > 0) {
                     proj.AssemblePass1(inputFile);
                     proj.AssemblePass2();
                 }
             }
-            
+
         } else {
             System.out.println("No Input File specified!");
         }
-        
+
     }
-    
+
     public void InitOperators() {
         operators.Add("+", 0);
         operators.Add("-", 0);
@@ -87,7 +88,7 @@ public class Proj4 {
         operators.Add("/", 1);
         operators.Add("^", 2);
     }
-    
+
     public void InitPreprocessorCommands() {
         _preprocs.Add("START");
         _preprocs.Add("END");
@@ -104,7 +105,7 @@ public class Proj4 {
         _preprocs.Add("USE");
         _preprocs.Add("LTORG");
     }
-    
+
     public void InitAddressCommands() {
     }
     //designates register-register commands
@@ -118,12 +119,13 @@ public class Proj4 {
         _regOps.Add("SUBR");
         _regOps.Add("TIXR");
         _regOps.Add("RMO");
+        _regOps.Add("CLEAR");
     }
-    
+
     public void InitSpecOps() {
         //placeholder for special operations.
     }
-    
+
     public void InitRegisters() {
         _registers.Add("A", 0);
         _registers.Add("X", 1);
@@ -135,48 +137,48 @@ public class Proj4 {
         _registers.Add("T", 5);
         _registers.Add("F", 6);
     }
-    
+
     public void AssemblePass1(String inputFile) {
-        
+
         _projectName = inputFile;
-        
-        
-        
+
+
+
         if (inputFile.length() > 0) {
             try {
                 FileReader fr = new FileReader(inputFile);
                 BufferedReader br = new BufferedReader(fr);
-                
+
                 String line;
                 String currentUseBlockName = " ";
-                
+
                 String[] source = new String[_defaultSourceSize];
-                
+
                 String[] useBlockNames = new String[10];
                 int useBlockCount = 1;
                 useBlockNames[0] = " ";
-                
+
                 HashTable useBlocks = new HashTable(10);
                 useBlocks.Add(" ", new String[0]);
-                
+
                 String[] currentBlock = new String[_defaultSourceSize];
-                
+
                 int j = 0;
                 while ((line = br.readLine()) != null) {
-                    
+
                     if (line.trim().toLowerCase().contains("use")) {
                         String useName = "";
                         HashValue useHash;
-                        
+
                         String[] splitSet = line.trim().toLowerCase().split("use");
                         boolean blockExists = false;
-                        
+
                         if (splitSet.length <= 2) {
-                            
+
                             useHash = useBlocks.Find(currentUseBlockName);
-                            
+
                             String[] useBlock = new String[0];
-                            
+
                             if (useHash != null) {
                                 useBlock = ((String[]) (useHash.Value));
                                 blockExists = true;
@@ -190,38 +192,40 @@ public class Proj4 {
 //                                    useBlockNames[useBlockCount] = useName;
 //                                    useBlockCount++;
 //                                }
-                            if (splitSet.length == 0 || splitSet[1] == "") {
-                                useName = " ";
-                            } else {
-                                useName = splitSet[1].trim();
+                            try {
+                                if (splitSet.length == 0 || splitSet.length == 1 || (splitSet.length == 2 && splitSet[1].equals(""))) {
+                                    useName = " ";
+                                } else {
+                                    useName = splitSet[1].trim();
+                                }
+                            } catch (Exception ex) {
                             }
-                            
                             for (int i = 0; i < j + 1; i++) {
                                 if (currentBlock[i] != null) {
                                     useBlock = addElement(useBlock, currentBlock[i]);
                                     currentBlock[i] = null;
                                 }
                             }
-                            
+
                             j = 0;
-                            
+
                             if (blockExists) {
                                 useBlocks.Replace(currentUseBlockName, useBlock);
                             } else {
                                 useBlocks.Add(currentUseBlockName, useBlock);
                                 useBlockNames[useBlockCount] = currentUseBlockName;
                                 useBlockCount++;
-                                
+
                             }
-                            
+
                             currentUseBlockName = useName;
                             line = "." + line;
                         }
                     }
-                    
+
                     currentBlock[j] = line;
                     j++;
-                    
+
                 }
 
                 //at the end of the source file, 
@@ -238,7 +242,7 @@ public class Proj4 {
                             currentBlock[i] = null;
                         }
                     }
-                    
+
                     useBlocks.Replace(currentUseBlockName, useBlock);
                 }
 
@@ -250,7 +254,7 @@ public class Proj4 {
                     String useName = useBlockNames[k];
                     if (useName != null) {
                         HashValue val = useBlocks.Find(useName);
-                        
+
                         if (val != null) {
                             String[] block = ((String[]) (val.Value));
                             for (int p = 0; p < block.length; p++) {
@@ -262,9 +266,9 @@ public class Proj4 {
                         }
                     }
                 }
-                
+
                 AssemblePass1(source);
-                
+
             } catch (FileNotFoundException ex) {
                 System.out.println("File " + inputFile + " not found!");
             } catch (IOException ex) {
@@ -274,46 +278,46 @@ public class Proj4 {
             System.out.println("No input file specified");
         }
     }
-    
+
     public SourceCodeLine[] AssemblePass1(String[] sourceCode) {
-        
+
         _src = new SourceCodeLine[sourceCode.length];
-        
+
         String out = "";
-        
+
         for (int k = 0; k < sourceCode.length; k++) {
             if (sourceCode[k] != null) {
                 String line = sourceCode[k];
-                
+
                 currentLineNumber++;
                 //System.out.println(line);
                 SourceCodeLine src = new SourceCodeLine();
-                
+
                 String[] lineTokens = line.split("\\s+");
-                
+
                 int length = line.length();
 
                 //if the line contains more than 1 token, assume it's 
                 //not a comment
 
-                
-                if (lineTokens.length > 0 && lineTokens[0].trim().startsWith(".")) {
+
+                if (line.trim().startsWith(".")) {
                     src.IsComment = true;
                     src.Source = line;
                     src.Address = currentPosition;
                 } else {
-                    
+
                     boolean containsPreproc = false;
-                    
+
                     String[] tokens = line.split("\\s+");
-                    
+
                     for (int i = 0; i < tokens.length; i++) {
                         if (_preprocs.Find(tokens[i], true) != null) {
                             containsPreproc = true;
                         }
                     }
-                    
-                    
+
+
                     src.Source = line;
 
                     //if there's a label attached tot he line, add it.
@@ -323,7 +327,7 @@ public class Proj4 {
                     } else {
                         src.Label = line.substring(0).trim();
                     }
-                    
+
                     if (length > 9) {
                         String extender = line.substring(9, 10).trim();
 
@@ -345,22 +349,22 @@ public class Proj4 {
                         //stores OP CODE (lda, sta, etc)
                         if (length >= 10) {
                             String opCodeName;
-                            
+
                             if (length > 16) {
                                 opCodeName = line.substring(10, 16).trim();
                             } else {
                                 opCodeName = line.substring(10).trim();
                             }
-                            
+
                             src.Operator = opCodeName;
-                            
+
                             HashValue opCodeHash = _sicOps.Find(opCodeName);
                             Object opCode = null;
-                            
+
                             if (opCodeHash != null) {
                                 opCode = opCodeHash.Value;
                             }
-                            
+
                             if (opCode != null) {
                                 src.OpCode = (SicOperation) opCode;
                             }
@@ -376,58 +380,65 @@ public class Proj4 {
                                 src.Operand = line.substring(19).trim();
                             }
                         }
-                        
+
                         if (line.length() > 18) {
                             src.OpModifier = line.charAt(18);
-                            
+
                             if (src.OpModifier == '@') {
-                                
+
                                 src.IsIndirect = true;
                             } else {
                                 src.IsIndirect = false;
                             }
-                            
+
                             if (src.OpModifier == '#') {
                                 src.IsImmediate = true;
                             } else {
                                 src.IsImmediate = false;
                             }
-                            
+
                             if (src.OpModifier == '=') {
                                 String literal = "";
-                                
+
                                 char literalMod = src.Operand.toCharArray()[0];
-                                
+
                                 if (literalMod == 'X' || literalMod == 'C') {
-                                    
-                                    
+
+
                                     if (literalMod == 'X') {
                                         literal = line.substring(line.indexOf("=X'"), line.lastIndexOf("'") + 1);
                                     } else if (src.Operand.toCharArray()[0] == 'C') {
-                                        
+
                                         literal = line.substring(line.indexOf("=C'"), line.lastIndexOf("'") + 1);
                                     }
-                                    
-                                    
-                                    
-                                    
+
+
+
+
                                     src.Operand = literal;
-                                    
+
                                     _literals.Add(literal, literal);
 
 
                                     //System.out.println(String.format("Literal found in '%s' ", line));
                                 }
                             }
-                            
+
                         }
-                        
-                        for (int m = 0; m < src.Operand.length(); m++) {
-                            if (operators.Find(src.Operand.substring(m, m + 1)) != null) {
-                                src.RequiresShunting = true;
+
+                        try {
+                            if (src.Operand != null) {
+                                for (int m = 0; m < src.Operand.length(); m++) {
+                                    if (operators.Find(src.Operand.substring(m, m + 1)) != null) {
+                                        if (src.Operand.substring(0, 1).compareTo("-") != 0) {
+                                            src.RequiresShunting = true;
+                                        }
+                                    }
+                                }
                             }
+                        } catch (Exception ex) {
                         }
-                        
+
                         if (!src.IsImmediate && !src.IsIndirect && !src.IsSic) {
                             src.IsImmediate = true;
                             src.IsIndirect = true;
@@ -439,28 +450,28 @@ public class Proj4 {
                         if (_regOps.Find(src.Operator) != null) {
                             src.IsRegisterOp = true;
                         }
-                        
-                        
-                        
+
+
+
                         if (line.length() > 29) {
                             src.Comment = line.substring(29).trim();
                         }
-                        
-                        
+
+
                         if (src.Operator.trim().toLowerCase().compareTo("start") == 0) {
-                            
+
                             src.IsPreproc = true;
                             startPosition = HexToInt(src.Operand);
-                            
+
                             if (startPosition < 0) {
                                 src.HasError = true;
                                 src.ErrorMessage = "Invalid Start position specified.  Defaulting to 100";
                                 startPosition = HexToInt("100");
                             }
-                            
+
                             currentPosition = startPosition;
                         }
-                        
+
                         if (startPosition < 0) {
                             startPosition = HexToInt(String.format("%d", _defaultStartPosition));
                             currentPosition = startPosition;
@@ -471,7 +482,7 @@ public class Proj4 {
                     //try to find nmeunomic in sic operations.
                     try {
                         src.Address = currentPosition;
-                        
+
                         SicOperation op = src.OpCode;
 
                         //if it can, add the size of the operation ot the current position
@@ -480,12 +491,7 @@ public class Proj4 {
                             src.Size = op.Size;
                         }
 
-                        //if extended, add an extra byte;
-                        if (src.IsExtended) {
-                            currentPosition++;
-                            src.Size++;
-                        }
-                        
+
                         String nemonic = src.Operator.toLowerCase().trim();
 
                         //designates whether the code is preproc or
@@ -508,9 +514,9 @@ public class Proj4 {
 
                         //determines whether the operation is a indexed operation
                         if (src.Operand.contains(",")) {
-                            
+
                             String[] regToRegOps = src.Operand.split(",");
-                            
+
                             if (regToRegOps.length != 2) {
                                 src.HasError = true;
                                 src.ErrorMessage = "invalid use of ','. Multiple operands expected.";
@@ -540,7 +546,14 @@ public class Proj4 {
                                     }
                                 }
                             }
-                            
+
+                        }
+
+
+                        //if extended, add an extra byte;
+                        if (src.IsExtended && !src.IsRegisterOp) {
+                            currentPosition++;
+                            src.Size++;
                         }
 
                         //deermines how much space to give to each  
@@ -579,10 +592,10 @@ public class Proj4 {
                                 src.ErrorMessage = "Error Parsing RESB value";
                             }
                         }
-                        
-                        
+
+
                     } catch (Exception ex) {
-                        
+
                         System.out.println(ex.getMessage());
                     }
                 }
@@ -597,49 +610,49 @@ public class Proj4 {
                         _symbolTable.Add(src.Label, src);
                     }
                 }
-                
+
                 _src[currentLineNumber] = src;
-                
+
                 if (line.contains("LTORG")) {
                     DumpLiterals();
                     _literals = new HashTable(5);
                 }
-                
+
                 if (out.length() > 0) {
                     //System.out.println(out);
                 }
             }
         }
-        
+
         DumpLiterals();
-        
-        
+
+
         return _src;
     }
-    
+
     SourceCodeLine[] AssemblePass2() {
         return AssemblePass2(_src);
     }
-    
+
     SourceCodeLine[] AssemblePass2(SourceCodeLine[] srcList) {
-        
+
         int pcMin = -2047;
         int pcMax = 2048;
         int baseMin = 0;
         int baseMax = 4096;
-        
+
         pc = startPosition;
-        
+
         for (int i = 0; i < srcList.length; i++) {
-            
+
             SourceCodeLine src = srcList[i], tmpSrc = new SourceCodeLine();
             HashValue tmpHash = new HashValue();
-            
+
             if (src != null) {
-                
+
                 if (!src.HasError && !src.HasWarning && !src.IsComment) {
                     pc += src.Size;
-                    
+
                     if (src.Operator != null && src.Operator.toUpperCase().compareTo("BASE") == 0) {
                         tmpHash = _symbolTable.Find(src.Operand);
                         if (tmpHash != null) {
@@ -649,7 +662,7 @@ public class Proj4 {
                             src.ErrorMessage = "Unknown Symbol found in BASE declaration.";
                         }
                     }
-                    
+
                     int offset = 0;
 
 
@@ -657,7 +670,12 @@ public class Proj4 {
                     //if the operand includes (+-*/), it requires
                     //an order of operations implementation
                     if (src.Operand != null && src.RequiresShunting) {
-                        src.Operand = ParseOrderOfOps(src.Operand);
+                        try {
+                            src.Operand = ParseOrderOfOps(src.Operand);
+                        } catch (Exception ex) {
+                            src.HasError = true;
+                            src.ErrorMessage = ex.getMessage();
+                        }
                     }
 
                     //if this is a regular opCode
@@ -666,7 +684,7 @@ public class Proj4 {
 
                             //generates NI for second half-byte of address
                             src.AssembledHex = HexToInt(src.OpCode.OpCode);
-                            
+
                             if (!src.IsRegisterOp) {
                                 if (src.IsImmediate) {
                                     src.AssembledHex += 1;
@@ -674,41 +692,57 @@ public class Proj4 {
                                 if (src.IsIndirect) {
                                     src.AssembledHex += 2;
                                 }
-                                
+
                             }
 
 
                             //operand specified
                             if (src.Operand != null && src.Operand.compareTo("") != 0) {
-                                
+
                                 String operand = src.Operand;
-                                
-                                
-                                
-                                
+
+
+
+
                                 if (src.IsIndexed) {
                                     operand = src.Operand.substring(0, src.Operand.indexOf(','));
                                 } else {
                                     operand = src.Operand;
                                 }
-                                
+
                                 HashValue hashedSymbol = _symbolTable.Find(operand);
-                                
+
                                 if (src.IsRegisterOp) {
                                     String[] registers = src.Operand.split(",");
-                                    
-                                    if (registers.length > 2) {
+
+                                    if (src.IsExtended) {
+                                        src.HasWarning = true;
+                                        src.ErrorMessage = "Warning: Register-Register Operations do not support extended operator";
+                                    }
+
+                                    if (registers.length > src.OpCode.Size) {
                                         src.HasError = true;
                                         src.ErrorMessage = "Too many registers specified in reg-reg operation";
                                     }
-                                    
+
                                     src.AssembledLine = String.format("%x", src.AssembledHex);
-                                    
+
+                                    boolean hasDuplicateRegisters = false;
+
                                     for (int j = 0; j < registers.length; j++) {
                                         HashValue reg = _registers.Find(registers[j]);
-                                        
+
                                         try {
-                                            src.AssembledLine += (String.format("%d", reg.Value));
+                                            if (registers.length == 2 && j == 1 && registers[0].compareTo(registers[1]) == 0) {
+                                                {
+                                                    hasDuplicateRegisters = true;
+                                                    src.HasWarning = true;
+                                                    src.ErrorMessage = "Warning: Duplicate Register specified in Register operation";
+                                                }
+                                            } else {
+                                                src.AssembledLine += (String.format("%d", reg.Value));
+                                            }
+
                                         } catch (Exception ex) {
                                         }
                                         if (reg == null) {
@@ -716,20 +750,21 @@ public class Proj4 {
                                             src.ErrorMessage = "Invalid register specified.";
                                         }
                                     }
-                                    
-                                    if (registers.length == 1) {
+
+                                    if (registers.length < src.OpCode.Size || (hasDuplicateRegisters && registers.length - 1 < src.OpCode.Size)) {
                                         src.AssembledLine += "0";
                                     }
-                                    
+
                                 } else {
-                                    
-                                    
+
+
                                     String s = String.format("=%s", operand);
                                     if (hashedSymbol == null && src.OpModifier == '=') {
                                         hashedSymbol = _symbolTable.Find(s);
                                     }
-                                    
+
                                     SourceCodeLine srcOperand;
+
 
 
                                     //if the operand exists within the symbol table
@@ -740,7 +775,7 @@ public class Proj4 {
                                         //if (!src.IsImmediate || (src.IsImmediate && src.IsIndirect) {
 
                                         offset = GetPositionDifference(pc, srcOperand.Address);
-                                        
+
                                         if (offset > pcMax || offset < pcMin) {
                                             if (base == -1) {
                                                 src.HasError = true;
@@ -748,7 +783,7 @@ public class Proj4 {
                                             } else {
                                                 offset = GetPositionDifference(base, srcOperand.Address);
                                                 if (offset < baseMin || offset > baseMax) {
-                                                    
+
                                                     src.HasError = true;
                                                     src.ErrorMessage = "Address offset too large for BASE  && PC addressing";
                                                 } else {
@@ -779,8 +814,8 @@ public class Proj4 {
                                             src.ErrorMessage = "Invalid operand specified.";
                                         }
                                     }
-                                    
-                                    
+
+
                                     if (src.IsExtended) {
                                         src.IsBaseRelative = false;
                                         src.IsPCRelative = false;
@@ -788,10 +823,14 @@ public class Proj4 {
 
                                     //generates XBPE half-byte for src code
                                     int xbpe = 0;
-                                    
-                                    
+
+                                    if (_symbolTable.Find(src.Operand) != null) {
+                                        src.IsImmediate = true;
+                                        src.IsIndirect = true;
+                                    }
+
                                     int addrSize = 3;
-                                    
+
                                     if (src.IsIndexed) {
                                         xbpe += 8;
                                     }
@@ -802,30 +841,31 @@ public class Proj4 {
                                         xbpe += 2;
                                     }
                                     if (src.IsExtended) {
+
                                         xbpe += 1;
                                         addrSize = 5;
                                     }
-                                    
+
                                     if (src.IsImmediate && !src.IsIndirect) {
                                         xbpe = 0;
                                     }
-                                    
+
                                     if (!src.IsExtended) {
                                         src.Offset = offset;
-                                        
-                                        
+
+
                                         String offsetString = String.format("%03X", offset);
-                                        
+
                                         if (addrSize - offsetString.length() > 0) {
                                             offsetString = String.format("%s%s", StringExtension.setLength("", addrSize - offsetString.length(), '0'), offsetString);
                                         } else {
                                             offsetString = String.format("%s", offsetString);
                                         }
-                                        
+
                                         if (offsetString.length() > addrSize) {
                                             offsetString = offsetString.substring(offsetString.length() - addrSize);
                                         }
-                                        
+
                                         if (!src.HasError) {
                                             src.AssembledLine = String.format("%02X%X%" + addrSize + "S", src.AssembledHex, xbpe, offsetString);
                                         } else {
@@ -845,9 +885,9 @@ public class Proj4 {
                                 if (preproc != null) {
                                     src.IsPreproc = true;
                                 }
-                                
+
                                 if (!src.IsPreproc && !src.IsAddressOperation) {
-                                    
+
                                     src.HasError = true;
                                     src.ErrorMessage = "Error finding Opcode for line: " + src.Source;
                                 }
@@ -855,10 +895,10 @@ public class Proj4 {
                         }
                     } else {
                         if (src.IsAddressOperation) {
-                            
+
                             if (src.IsLiteral) {
                                 String literalValue = src.OpModifier + src.Operand;
-                                
+
                                 if (literalValue.contains("=C'")) {
                                     literalValue = literalValue.substring(literalValue.indexOf("=C'") + 3, literalValue.lastIndexOf("'"));
                                     src.AssembledLine = String.format("%x", new BigInteger(literalValue.getBytes()));
@@ -870,10 +910,10 @@ public class Proj4 {
                                         src.HasError = true;
                                         src.ErrorMessage = "Invalid Hex value specified in literal";
                                     }
-                                    
+
                                     src.AssembledLine = String.format("%s", literalValue);
                                 }
-                                
+
                             } else {// if ((src.IsIndirect && src.IsImmediate) || (!src.IsIndirect && !src.IsImmediate)) {
                                 Integer iOperand;
                                 Integer opLength = (int) (src.Size);
@@ -890,7 +930,7 @@ public class Proj4 {
                                         }
                                     }
                                 } catch (Exception ex) {
-                                    
+
                                     if (_symbolTable.Find(src.Operand) != null) {
                                         src.AssembledLine = String.format("%06x", ((SourceCodeLine) (_symbolTable.Find(src.Operand).Value)).Address);
                                     } else {
@@ -898,16 +938,16 @@ public class Proj4 {
                                     }
                                 }
                             }
-                            
-                            
+
+
                         }
                     }
                 }
             }
         }
-        
+
         PrintToFile();
-        
+
         for (int i = 0; i < _symbolTable.length(); i++) {
             if (_symbolTable._hash[i] != null) {
                 HashValue hash = _symbolTable._hash[i];
@@ -915,87 +955,86 @@ public class Proj4 {
                 //System.out.println(String.format("Symbol %s \t with memory location %s  stored at position %d", hash.Key, Integer.toHexString(srcLine.Address), hash.Address));
             }
         }
-        
+
         return srcList;
     }
-    
+
     public boolean PrintToFile() {
         return PrintToFile(_projectName);
     }
-    
+
     public boolean PrintToFile(String projectName) {
-        
+
         String outputListFileName = projectName + ".lst";
         String outputObjFileName = projectName + ".obj";
-        
+
         boolean foundErrors = false;
-        
+
         SourceCodeLine src;
-        
+
         int maxAssebledLineLength = 0;
-        
+
         for (int i = 0; i < _src.length; i++) {
             src = _src[i];
             if (src != null) {
                 maxAssebledLineLength = maxAssebledLineLength < src.AssembledLine.length() ? src.AssembledLine.length() : maxAssebledLineLength;
             }
         }
-        
-        
+
+
         try {
-            
+
             File outputListFile = new File(outputListFileName);
             File outputObjFile = new File(outputObjFileName);
-            
+
             if (outputListFile.exists()) {
                 outputListFile.delete();
             }
-            
+
             if (outputObjFile.exists()) {
                 outputObjFile.delete();
             }
-            
+
             FileWriter fw = new FileWriter(outputListFileName);
-            
+
             BufferedWriter bw = new BufferedWriter(fw);
-            
+
             String startPosition = "";
-            
+
             boolean writeStartOp = false;
-            
+
             for (int i = 0; i < _src.length; i++) {
                 src = _src[i];
                 if (src != null) {
-                    
+
                     bw.write(String.format("%03d   %05X: %S %S ", i, src.Address, StringExtension.setLength(src.AssembledLine, maxAssebledLineLength, ' '), src.Source));
                     bw.newLine();
                     if (src.HasError || src.HasWarning) {
-                        foundErrors = true;
+                        if (src.HasError) {
+                            foundErrors = true;
+                        }
                         bw.write("********" + src.ErrorMessage + "******************");
                         bw.newLine();
                     }
-                    
-                    
-                    
                 }
             }
-            
+
             bw.close();
             fw.close();
-            
+
             System.out.println("List File " + outputListFileName + " created");
-            
-            
+
+
             if (!foundErrors) {
-                
+
                 FileWriter fw2 = new FileWriter(outputObjFileName);
-                
+
                 BufferedWriter bw2 = new BufferedWriter(fw2);
-                
+
                 for (int i = 0; i < _src.length; i++) {
                     src = _src[i];
                     if (src != null) {
-                        
+
                         if (writeStartOp) {
                             bw2.write(String.format("%06X", src.Address));
                             bw2.newLine();
@@ -1003,70 +1042,70 @@ public class Proj4 {
                             bw2.newLine();
                             writeStartOp = false;
                         }
-                        
+
                         if (!src.IsPreproc && !src.IsReservedAddress) {
                             if (src.AssembledLine.trim().length() > 0) {
                                 bw2.write(String.format("%S ", src.AssembledLine));
-                                
+
                                 bw2.newLine();
                             }
                         } else {
-                            
+
                             if (src.IsReservedAddress || src.Operator.compareToIgnoreCase("END") == 0) {
                                 bw2.write("!");
                                 writeStartOp = true;
-                                
+
                                 bw2.newLine();
                             }
-                            
+
                             if (src.Operator.compareToIgnoreCase("START") == 0) {
                                 startPosition = String.format("%06X ", src.Address);
                                 bw2.write(startPosition);
                                 bw2.newLine();
                                 bw2.write("000000");
                                 writeStartOp = false;
-                                
+
                                 bw2.newLine();
                             }
-                            
+
                         }
-                        
+
                     }
                 }
-                
+
                 bw2.close();
                 fw2.close();
-                
-                
+
+
                 System.out.println("Object File " + outputObjFileName + " created");
-                
+
             } else {
                 System.out.println("There were errors found in your code.  Subsequently, the object file  " + outputObjFileName + " not generated.  ");
             }
-            
+
             if (!foundErrors) {
             } else {
             }
-            
-            
+
+
         } catch (FileNotFoundException ex) {
             return false;
         } catch (IOException ex) {
             System.out.println("There was an error writing the output file file:" + ex.getMessage());
             return false;
         }
-        
-        
+
+
         return true;
     }
-    
+
     private int GetRealAddress(SourceCodeLine src) {
         if (src.IsImmediate && src.IsIndirect) {
             return src.Address;
         } else if (src.IsImmediate) {
-            
+
             HashValue h = _symbolTable.Find(src.Operand);
-            
+
             if (h != null) {
                 return ((SourceCodeLine) h.Value).Address;
             } else {
@@ -1082,7 +1121,7 @@ public class Proj4 {
             if (src.Operand == null) {
                 src.HasError = true;
                 src.ErrorMessage = "No operand specified in indirect address";
-                
+
             } else {
                 return src.Address;
 //                HashValue h = _symbolTable.Find(src.Operand);
@@ -1094,30 +1133,30 @@ public class Proj4 {
 //                }
             }
         }
-        
+
         return src.Address;
-        
+
     }
-    
+
     private boolean DumpLiterals() {
         for (int i = 0; i < _literals.length(); i++) {
             if (_literals._hash[i] != null) {
 
                 //grab each literal
                 String literalValue = (String) _literals._hash[i].Value;
-                
+
                 SourceCodeLine literal = new SourceCodeLine();
-                
+
                 literal.Operand = literalValue.substring(1);
                 literal.IsAddressOperation = true;
                 literal.Label = literalValue;
                 literal.Address = currentPosition;
                 literal.OpModifier = '=';
                 literal.IsLiteral = true;
-                
-                
+
+
                 int maxLiteralSize = 10;
-                
+
                 if (literalValue.contains("=C")) {
                     //converst literal operand from character string into hex
 
@@ -1128,10 +1167,10 @@ public class Proj4 {
                     } else {
                         literal.Source = String.format("%s BYTE     %s", literalValue.substring(0, maxLiteralSize), literal.Operand);
                     }
-                    
+
                     literal.Size = (int) (literalValue.substring(literalValue.indexOf("'") + 1, literalValue.lastIndexOf("'")).length());
                     currentPosition += literal.Size;
-                    
+
                 } else {
 
 
@@ -1142,11 +1181,11 @@ public class Proj4 {
                     } else {
                         literal.Source = String.format("%s BYTE     %s", literalValue.substring(0, maxLiteralSize), literal.Operand);
                     }
-                    
+
                     literal.Size = (int) (literalValue.substring(literalValue.indexOf("'") + 1, literalValue.lastIndexOf("'")).length() / 2 + 0.5);
                     currentPosition += literal.Size;
                 }
-                
+
                 currentLineNumber++;
                 _symbolTable.Add(literal.Label, literal);
                 _src[currentLineNumber] = literal;
@@ -1157,10 +1196,10 @@ public class Proj4 {
 
     //gets the difference in positions between 
     private int GetPositionDifference(int pos1, int pos2) {
-        
+
         return pos2 - pos1;
     }
-    
+
     private int BoolToInt(Boolean bool) {
         if (bool == null) {
             return 0;
@@ -1168,7 +1207,7 @@ public class Proj4 {
             return bool ? 1 : 0;
         }
     }
-    
+
     protected int HexToInt(String hex) {
         return Integer.parseInt(hex, 16);
     }
@@ -1177,17 +1216,17 @@ public class Proj4 {
      * @param args the command line arguments
      */
     public boolean LoadOpCodes(String inputFileName) {
-        
+
         System.out.println("Project Started");
-        
-        
+
+
         if (inputFileName.length() > 0) {
             try {
                 FileReader fr = new FileReader(inputFileName);
                 BufferedReader br = new BufferedReader(fr);
-                
+
                 String line;
-                
+
                 while ((line = br.readLine()) != null) {
                     //System.out.println(line);
 
@@ -1198,7 +1237,7 @@ public class Proj4 {
                     //assume that the line represents a value to store into 
                     //the hash table
                     if (lineTokens.length > 2) {
-                        
+
                         SicOperation item = new SicOperation();
                         HashValue hash = new HashValue();
 
@@ -1209,7 +1248,7 @@ public class Proj4 {
                         item.OperandCount = Integer.parseInt(lineTokens[3]);
                         item.Name = hash.Key;
                         hash.Value = item;
-                        
+
                         _sicOps.Add(hash);
                         //hash Key value
 
@@ -1218,8 +1257,8 @@ public class Proj4 {
                         if (lineTokens.length == 2) {
                         }
                     }
-                    
-                    
+
+
                 }
             } catch (FileNotFoundException ex) {
                 System.out.println("File " + inputFileName + " not found!");
@@ -1232,14 +1271,14 @@ public class Proj4 {
             System.out.println("No input file specified");
             return false;
         }
-        
+
         return true;
-        
-        
-        
-        
+
+
+
+
     }
-    
+
     String[] addElement(String[] org, String added) {
         String[] result = Arrays.copyOf(org, org.length + 1);
         result[org.length] = added;
@@ -1249,93 +1288,137 @@ public class Proj4 {
     //order of operation processing
     private static int LeftAssociative = 0;
     private static int RightAssociative = 1;
-    
+
     private boolean isStackOp(String op) {
-        if(op!=null)
-        return operators.Find(op) != null;
-        else
+        if (op != null) {
+            return operators.Find(op) != null;
+        } else {
             return false;
+        }
     }
-    
+
     private boolean isAssociative(String op, int type) {
-        
+
         if (isStackOp(op) && Integer.parseInt(operators.Find(op).Value.toString()) == type) {
             return true;
         }
         return false;
     }
-    
-    String ParseOrderOfOps(String val) {
-        
+
+    String ParseOrderOfOps(String val) throws Exception{
+
         val = val.replace(" ", "");
         ArrayList<String> operations = new ArrayList<String>();
-        
+
         String[] operands = BreakOutOperandSet(val);
-        
+
         Stack<String> opStack = new Stack<String>();
-        
+
         String output = "";
         int currentPrecedence = 2;
-        
-        
-        
+
         for (String operand : operands) {
-            
-            
-            if(operand != null){
-            if (isStackOp(operand)) {
-                while (!opStack.isEmpty() && isStackOp(opStack.peek())) {
-                    if ((isAssociative(operand, LeftAssociative) && ComparePrecedence(
-                            operand, opStack.peek()) <= 0)
-                            || (isAssociative(operand, RightAssociative) && ComparePrecedence(
-                            operand, opStack.peek()) < 0)) {
-                        operations.add(opStack.pop());                        
-                        continue;
+
+            if (operand != null) {
+                if (isStackOp(operand)) {
+                    while (!opStack.isEmpty() && isStackOp(opStack.peek())) {
+                        if ((isAssociative(operand, LeftAssociative) && ComparePrecedence(
+                                operand, opStack.peek()) <= 0)
+                                || (isAssociative(operand, RightAssociative) && ComparePrecedence(
+                                operand, opStack.peek()) < 0)) {
+                            operations.add(opStack.pop());
+                            continue;
+                        }
+                        break;
                     }
-                    break;
+                    opStack.push(operand);
+                } else if (operand.equals("(")) {
+                    opStack.push(operand);
+                } else if (operand.equals(")")) {
+                    while (!opStack.empty() && !opStack.peek().equals("(")) {
+                        operations.add(opStack.pop());
+                    }
+                    opStack.pop();
+                } else {
+                    if (!IsInteger(operand)) {
+                        if (_symbolTable.Find(operand) != null) {
+                            operand = String.format("%d", ((SourceCodeLine) (_symbolTable.Find(operand).Value)).Address);
+                        } else {
+                            //throw new Exception("Invalid operand specified in Shunting Yard algorithm: Operands must be symbols or integers.");
+                        }
+                    }
+                    operations.add(operand);
                 }
-                opStack.push(operand);
-            } else if (operand.equals("(")) {
-                opStack.push(operand);
-            } else if (operand.equals(")")) {
-                while (!opStack.empty() && !opStack.peek().equals("(")) {
-                    operations.add(opStack.pop());                    
+
+
+
+                HashValue hash = _symbolTable.Find(operand);
+                if (hash != null) {
+                    output += ((SourceCodeLine) (hash.Value)).Address + " ";
+                } else {
+                    output += operand + " ";
                 }
-                opStack.pop();
-            } else {
-                if(_symbolTable.Find(operand)!=null){
-                    operand = String.format("%d", ((SourceCodeLine)(_symbolTable.Find(operand).Value)).Address);
-                }
-                operations.add(operand);                
+
+
             }
-            
-            HashValue hash = _symbolTable.Find(operand);
-            if (hash != null) {
-                output += ((SourceCodeLine) (hash.Value)).Address + " ";
-            } else {
-                output += operand + " ";
-            }
-            
-            
-            }
-            
+
         }
-        
+
         while (!opStack.empty()) {
             operations.add(opStack.pop());
         }
-        
+
         String[] outputArray = new String[operations.size()];
+
         
-        output = "";
-        for(String out: operations.toArray(outputArray)){
-            output += out + " ";
+        Stack stack = new Stack<String>();
+        
+        for(Object op: operations){
+            stack.add((String)op);
         }
         
+        double outInt = 0;
+        
+        try {
+            outInt = ParseRPN(stack);
+            
+            val = String.format("%.0f", outInt);
+        } catch (Exception ex) {
+          throw new Exception("Unable to parse Order of Operands.");
+        }
+        
+        output = "";
+        for (String out : operations.toArray(outputArray)) {
+            output += out + " ";
+        }
+
         System.out.println(output);
         return val;
     }
-    
+
+    private static double ParseRPN(Stack<String> ops) throws Exception {
+        String tk = ops.pop();
+        double x, y;
+        try {
+            x = Double.parseDouble(tk);
+        } catch (Exception e) {
+            y = ParseRPN(ops);
+            x = ParseRPN(ops);
+            if (tk.equals("+")) {
+                x += y;
+            } else if (tk.equals("-")) {
+                x -= y;
+            } else if (tk.equals("*")) {
+                x *= y;
+            } else if (tk.equals("/")) {
+                x /= y;
+            } else {
+                throw new Exception();
+            }
+        }
+        return x;
+    }
+
     private int ComparePrecedence(String op1, String op2) {
         if (!isStackOp(op1) || !isStackOp(op2)) {
             throw new IllegalArgumentException("Error parsing operand: Invalid tokens " + op1
@@ -1343,15 +1426,24 @@ public class Proj4 {
         }
         return Integer.parseInt(operators.Find(op1).Value.toString()) - Integer.parseInt(operators.Find(op2).Value.toString());
     }
-    
+
+    private boolean IsInteger(String s) {
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
     String[] BreakOutOperandSet(String val) {
-        
+
         boolean popNextOperand = false;
         int opStartIndex = 0;
         int operandCount = 0;
-        
+
         String[] operands = new String[val.length()];
-        
+
         char[] valArray = val.toCharArray();
         for (int j = 0; j < val.length(); j++) {
             if (operators.Find(String.format("%c", valArray[j])) != null) {
@@ -1364,40 +1456,40 @@ public class Proj4 {
         }
         //adds last value to operand set
         operands[operandCount] = val.substring(opStartIndex);
-        
+
         return operands;
     }
 }
 
 class HashTable {
-    
+
     private int _hashTableSize = 200;
     public HashValue[] _hash;
     private int occupiedSpace;
-    
+
     public HashTable(int hashSize) {
         _hashTableSize = hashSize;
         _hash = new HashValue[hashSize];
     }
-    
+
     public boolean Add(String key) {
         return Add(key, key);
     }
-    
+
     public boolean Add(String key, Object value) {
-        
+
         HashValue hash = new HashValue();
         hash.Key = key;
         hash.Value = value;
         return Add(hash);
     }
-    
+
     public boolean Replace(String key, Object value) {
-        
+
         int hashedValue = GetHashValue(key);
         boolean foundHash = false;
-        
-        
+
+
         while (foundHash == false && _hash[hashedValue] != null) {
             //if you find it, Huzzah!
             if (_hash[hashedValue].Key.toLowerCase().compareTo(key.toLowerCase()) == 0) {
@@ -1411,38 +1503,38 @@ class HashTable {
                 }
             }
         }
-        
+
         return false;
-        
+
     }
-    
+
     private boolean Rehash() {
-        
+
         HashTable _newHash = new HashTable((int) (_hashTableSize * 2));
-        
+
         for (int i = 0; i < _hashTableSize; i++) {
             if (_hash[i] != null) {
                 _newHash.Add(_hash[i].Key, _hash[i].Value);
             }
         }
-        
+
         _hash = _newHash._hash;
         _hashTableSize = _newHash.length();
-        
+
         return true;
     }
-    
+
     public boolean Add(HashValue item) {
-        
+
         return Add(item, true);
     }
-    
+
     public boolean Add(HashValue item, Boolean suppressMessage) {
-        
+
         int hashValue = GetHashValue(item.Key);
-        
+
         String out = "";
-        
+
         if (!suppressMessage) {
             out = "Key " + item.Key + " hashed to position " + hashValue + " of " + _hashTableSize;
         }
@@ -1456,7 +1548,7 @@ class HashTable {
             //look for the next position that is empty and store the value there.
             int hashPosition = hashValue;
             boolean foundDuplicate = false;
-            
+
             while (_hash[hashPosition] != null && foundDuplicate == false) {
 
                 //if the Key is already found, throw an error
@@ -1468,45 +1560,45 @@ class HashTable {
                     if (hashPosition >= _hashTableSize) {
                         hashPosition = 0;
                     }
-                    
+
                     if (hashPosition == hashValue) {
                         //IncreaseHashTableSize
                     }
                 }
-                
+
             }
-            
+
             if (foundDuplicate != true) {
                 item.Position = hashPosition;
                 _hash[hashPosition] = item;
                 occupiedSpace++;
                 hashValue = hashPosition;
             }
-            
+
         }
-        
+
         if (occupiedSpace > _hashTableSize * 0.8) {
             Rehash();
         }
-        
+
         if (out != null && out.compareTo("") != 0) {
             //System.out.println(out);
         }
-        
+
         return true;
     }
-    
+
     public HashValue Find(String key) {
         return Find(key, true);
     }
-    
+
     public HashValue Find(String key, Boolean suppressError) {
-        
+
         String out = "";
         int hashedValue = GetHashValue(key);
         boolean foundHash = false;
-        
-        
+
+
         while (foundHash == false && _hash[hashedValue] != null) {
             //if you find it, Huzzah!
             if (_hash[hashedValue].Key.toLowerCase().compareTo(key.toLowerCase()) == 0) {
@@ -1519,7 +1611,7 @@ class HashTable {
                 }
             }
         }
-        
+
         if (foundHash == true) {
             return _hash[hashedValue];
         } else {
@@ -1530,26 +1622,26 @@ class HashTable {
             return null;
         }
     }
-    
+
     protected int GetHashValue(String s) {
-        
+
         int stringValue = 0;
         char[] chars = s.toCharArray();
-        
+
         for (int i = 0; i < chars.length; i++) {
             stringValue += (int) chars[i];
         }
-        
+
         return stringValue % _hashTableSize;
     }
-    
+
     public int length() {
         return _hashTableSize;
     }
 }
 
 class HashValue {
-    
+
     int Position;
     String Key;
     Object Value;
@@ -1605,42 +1697,42 @@ class SourceCodeLine {
     //position within code
     int Size = 0;
     int Address;
-    
+
     public String ToString() {
         SourceCodeLine src = this;
-        
+
         String s = "";
-        
+
         if (src.HasError) {
             src.AssembledLine = "";
         }
-        
+
         if (src.OpCode != null) {
             s = String.format("%05X:    " + StringExtension.setLength(src.AssembledLine, 10, ' ') + "%S", src.Address, src.Source);
         } else {
             if (IsPreproc) {
                 s = String.format("%05X:    " + StringExtension.setLength("", 10, ' ') + "%S ", Address, Source);
             } else if (IsAddressOperation) {
-                
+
                 s = String.format("%05X:    " + StringExtension.setLength(src.AssembledLine, 10, ' ') + "%S ", src.Address, src.Source);
             }
-            
+
             if (!IsPreproc && !IsAddressOperation) {
                 s = String.format("%05x:    " + StringExtension.setLength("", 15, ' ') + "%s", src.Address, src.Source);
             }
         }
-        
-        
+
+
         if (src.HasError) {
             s += "\n********" + src.ErrorMessage + "******************";
         }
-        
+
         return s;
     }
 }
 
 class SicOperation {
-    
+
     int Size;
     String OpCode;
     String Name;
@@ -1649,16 +1741,16 @@ class SicOperation {
 }
 
 class StringExtension {
-    
+
     public static String setLength(String original, int length, char padChar) {
         return justifyLeft(original, length, padChar, false);
     }
-    
+
     protected static String justifyLeft(String str, final int width, char padWithChar,
             boolean trimWhitespace) {
         // Trim the leading and trailing whitespace ...
         str = str != null ? (trimWhitespace ? str.trim() : str) : "";
-        
+
         int addChars = width - str.length();
         if (addChars < 0) {
             // truncate
@@ -1673,13 +1765,13 @@ class StringExtension {
             sb.append(padWithChar);
             --addChars;
         }
-        
+
         return sb.toString();
     }
 }
 
 class ControlSection {
-    
+
     String Name;
     SourceCodeLine[] Source;
     int _symbolTableSize = 50;

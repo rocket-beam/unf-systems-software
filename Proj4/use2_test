@@ -15,7 +15,9 @@ UP        LDA     #3
           RMO      X,A       
           JLT      UP        
           USE              
-FIRST     WORD     4+15/SEC         
+FIRST     WORD     1+2*3/4+
+
+5       
 SEC       WORD     FIRST         
 NUM       RESW     1         
 ANS       RESW     2           
