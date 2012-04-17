@@ -13,7 +13,7 @@ B         EQU      C
 SEC       WORD     -11
 NUM       RESW     700
 ANS       RESW     1
-ONE       WORD     3*5
+ONE       WORD     3*(5+3)
 BIG       WORD     SEC+EXA
 B2         RESW     1
           LTORG
