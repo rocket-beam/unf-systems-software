@@ -1,36 +1,35 @@
-001   00100:                      EXAM      START    100 
-002   00100: 75000E               EXA       LDT     #14 
-003   00103: 9050                           ADDR     T,A 
-004   00105: 1B2039                         ADD      SEC 
-005   00108: 0FA023                         STA      C,X 
-006   0010B:                                BASE    #BIG 
-007   0010B: 690294                         LDB     #BIG 
-008   0010E: 6E228E                         LDS     @ONE 
-009   00111:                      .          USE 
-010   00111:                                LTORG     
-011   00111: 6F2003                         LDS     =C'FANCY' 
-012   00114: 6F2005                         LDS     =C'SUPERFANCY' 
-013   00117:                                LTORG 
-014   00117: 46414E4359           =C'FANCY'  BYTE     C'FANCY' 
-015   0011C: 535550455246414E4359 =C'SUPERFA BYTE     C'SUPERFANCY' 
-016   00126: 9050                 HELP      ADDR     T,A 
-017   00128: 1B2016                         ADD      SEC 
-018   0012B: 0FA019                         STA      ANS,X 
-019   0012E: 000000               C         WORD     0 
-020   00131:                                END      EXA 
-021   00131:                      .		  USE      HELP		 
-022   00131: 0F10012E                      +STA      C 
-023   00135: 772273                         LDT     =X'1AB9' 
-024   00138: 6F226D                         LDS     =C'EON' 
-025   0013B:                                .A EQU B 
-********Error finding Opcode for line:           .a equ b******************
-026   0013B: 3E2FC2                         J       @EXA 
-027   0013E: 4C0000                         RSUB 
-028   00141: FFFFF5               SEC       WORD     -11 
-029   00144:                      NUM       RESW     1 
-030   00147:                      ANS       RESW     200 
-031   0039F: 00000D               ONE       WORD     13 
-032   003A2: 000000               BIG       WORD     0 
-033   003A5:                      B         RESW     1 
-034   003A8: 454F4E               =C'EON'    BYTE     C'EON' 
-035   003AB: 1AB9                 =X'1AB9'   BYTE     X'1AB9' 
+000   00100:                      EXAM      START    100 
+001   00100: 75000E               EXA       LDT     #14 
+002   00103: 9050                           ADDR     T,A 
+003   00105: 1B2039                         ADD      SEC 
+004   00108: 0FA023                         STA      C,X 
+005   0010B:                                BASE    #BIG 
+006   0010B: 692294                         LDB     #BIG 
+007   0010E: 6E228E                         LDS     @ONE 
+008   00111:                      .          USE 
+009   00111:                                LTORG     
+010   00111: 6F2003                         LDS     =C'FANCY' 
+011   00114: 6F2005                         LDS     =C'SUPERFANCY' 
+012   00117:                                LTORG 
+013   00117: 46414E4359           =C'FANCY'  BYTE     C'FANCY' 
+014   0011C: 535550455246414E4359 =C'SUPERFA BYTE     C'SUPERFANCY' 
+015   00126: 9050                 HELP      ADDR     T,A 
+016   00128: 1B2016                         ADD      SEC 
+017   0012B: 0FA019                         STA      ANS,X 
+018   0012E: 000000               C         WORD     0 
+019   00131:                                END      EXA 
+020   00131:                      .		  USE      HELP		 
+021   00131: 0F10012E                      +STA      C 
+022   00135: 772273                         LDT     =X'1AB9' 
+023   00138: 6F226D                         LDS     =C'EON' 
+024   0013B:                                .A EQU B 
+025   0013B: 3E2FC2                         J       @EXA 
+026   0013E: 4F0000                         RSUB 
+027   00141: FFFFF5               SEC       WORD     -11 
+028   00144:                      NUM       RESW     1 
+029   00147:                      ANS       RESW     200 
+030   0039F: 00000D               ONE       WORD     13 
+031   003A2: 000000               BIG       WORD     0 
+032   003A5:                      B         RESW     1 
+033   003A8: 454F4E               =C'EON'    BYTE     C'EON' 
+034   003AB: 1AB9                 =X'1AB9'   BYTE     X'1AB9' 
