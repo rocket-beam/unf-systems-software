@@ -16,7 +16,7 @@
 013   0011B:        NUM       RESW     700 
 014   0094F:        ANS       RESW     1 
 015   00952: 000018 ONE       WORD     3*(5+3) 
-016   00955: 000000 BIG       WORD     SEC+EXA 
+016   00955: 000118 BIG       WORD     SEC 
 017   00958:        B2         RESW     1 
 018   0095B:                  LTORG 
 019   0095B: 000000 C         WORD     0 
