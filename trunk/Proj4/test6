@@ -6,6 +6,7 @@ EXA       LDT     @C
           CLEAR    S,S
           BASE    #BIG
           LDB     #BIG
+B         EQU     C
           J       @EXA
           RSUB
 SEC       WORD     -11
