@@ -9,7 +9,7 @@ EXA       LDT     #14
          +STA      C
           LDT     =X'1AB9'
           LDS     =C'EON'
-          .a equ b
+A         EQU      B
           J       @EXA
           RSUB
 SEC       WORD     -11
@@ -17,6 +17,7 @@ NUM       RESW     1
 ANS       RESW     200
 ONE       WORD     13
 BIG       WORD     0
+A         WORD     1
 B         RESW     1
           LTORG    
           LDS     =C'FANCY'

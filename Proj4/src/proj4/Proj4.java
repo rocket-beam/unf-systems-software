@@ -1694,6 +1694,9 @@ class SourceCodeLine {
     String ErrorMessage;
     //original source line
     String Source;
+    //represents the .obj modification
+    //records needed for this line.
+    String[] Modifications = new String[10];
     //position within code
     int Size = 0;
     int Address;
