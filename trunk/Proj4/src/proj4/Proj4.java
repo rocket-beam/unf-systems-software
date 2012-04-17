@@ -1622,6 +1622,9 @@ public class Proj4 {
                     y = ParseRPN(ops);
                     x = ParseRPN(ops);
                 }
+                else{
+                    privateRPN.Modifications = addElement(privateRPN.Modifications, ops.peek() + tk);
+                }
             
             if (tk.equals("+")) {
                 if (sym != null) {
