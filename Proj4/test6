@@ -1,21 +1,21 @@
 EXAM      START    100
+          BASE    #BIG
+          LDB     #BIG
 EXA       LDT     @C
           ADDR     T,A
           STA      C,X
          +COMPR    S,T
           CLEAR    S,S
-          BASE    #BIG
-          LDB     #BIG
-B         EQU     C
+B         EQU      C
           J       @EXA
+          ADD      SEC
           RSUB
 SEC       WORD     -11
-NUM       RESW     1
+NUM       RESW     700
 ANS       RESW     1
-ONE       WORD     3*5+C*3
-BIG       WORD     0
-B         RESW     1
+ONE       WORD     3*5
+BIG       WORD     SEC+EXA
+B2         RESW     1
           LTORG
-          ADD      SEC
 C         WORD     0
           END      EXA
