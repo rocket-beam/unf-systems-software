@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-//package proj4;
+package proj4;
 
 import java.io.*;
 import java.math.BigInteger;
@@ -87,7 +87,7 @@ public class Proj4 {
         operators.Add("-", 0);
         operators.Add("*", 1);
         operators.Add("/", 1);
-        operators.Add("^", 2);
+        operators.Add("^", 3);
     }
 
     public void InitPreprocessorCommands() {
@@ -693,7 +693,7 @@ public class Proj4 {
                     //an order of operations implementation
                     if (src.Operand != null && src.RequiresShunting) {
                         try {
-                            src.Operand = ParseOrderOfOps(src.Operand);
+                            src = ParseOrderOfOps(src.Operand, src);
                         } catch (Exception ex) {
                             src.HasError = true;
                             src.ErrorMessage = ex.getMessage();
@@ -1505,8 +1505,10 @@ public class Proj4 {
         return false;
     }
 
-    String ParseOrderOfOps(String val) throws Exception {
+    SourceCodeLine ParseOrderOfOps(String val, SourceCodeLine src) throws Exception {
 
+        privateRPN = src;
+        
         val = val.replace(" ", "");
         ArrayList<String> operations = new ArrayList<String>();
 
@@ -1542,7 +1544,7 @@ public class Proj4 {
                 } else {
                     if (!IsInteger(operand)) {
                         if (_symbolTable.Find(operand) != null) {
-                            operand = String.format("%d", ((SourceCodeLine) (_symbolTable.Find(operand).Value)).Address);
+                           // operand = String.format("%d", ((SourceCodeLine) (_symbolTable.Find(operand).Value)).Address);
                         } else {
                             //throw new Exception("Invalid operand specified in Shunting Yard algorithm: Operands must be symbols or integers.");
                         }
@@ -1596,29 +1598,68 @@ public class Proj4 {
         }
 
         System.out.println(output);
-        return val;
+        src = privateRPN;
+        src.Operand = val;
+        return src;
     }
 
+    private SourceCodeLine privateRPN = new SourceCodeLine();
+    
+    private boolean isParen(String val){
+        return val.compareTo("(")==0 || val.compareTo(")")==0 ;
+    }
+    
     private double ParseRPN(Stack<String> ops) throws Exception {
         String tk = ops.pop();
-        double x, y;
+        double x=0, y=0;
         try {
             x = Double.parseDouble(tk);
         } catch (Exception e) {
-            y = ParseRPN(ops);
-            x = ParseRPN(ops);
-            if (_symbolTable.Find(tk.toString()) != null) {
-            } else if (tk.equals("+")) {
-                x += y;
+            try{
+                HashValue sym = _symbolTable.Find(tk.toString());
+                
+                if(sym ==null){
+                    y = ParseRPN(ops);
+                    x = ParseRPN(ops);
+                }
+            
+            if (tk.equals("+")) {
+                if (sym != null) {
+                    privateRPN.Modifications = addElement(privateRPN.Modifications, "+" + tk);
+                }    
+                else{
+                    x += y;
+                }
             } else if (tk.equals("-")) {
-                x -= y;
+                
+                if (sym != null) {
+                    privateRPN.Modifications = addElement(privateRPN.Modifications, "-" + tk);
+                }    
+                else{
+                    x -= y;
+                }
             } else if (tk.equals("*")) {
-                x *= y;
+                
+                if (sym != null) {
+                    privateRPN.Modifications = addElement(privateRPN.Modifications, "*" + tk);
+                }    
+                else{
+                    x *= y;
+                };
             } else if (tk.equals("/")) {
-                //if()
+                
+                if (sym != null) {
+                    privateRPN.Modifications = addElement(privateRPN.Modifications, "/" + tk);
+                }    
+                else{
                 x /= y;
+                }
             } else {
                 throw new Exception();
+            }
+            }
+            catch(Exception ex){
+                
             }
         }
         return x;
@@ -1647,14 +1688,18 @@ public class Proj4 {
         int opStartIndex = 0;
         int operandCount = 0;
 
-        String[] operands = new String[val.length()];
+        String[] operands = new String[val.length()+2];
 
         char[] valArray = val.toCharArray();
         for (int j = 0; j < val.length(); j++) {
-            if (operators.Find(String.format("%c", valArray[j])) != null) {
+            if (operators.Find(String.format("%c", valArray[j])) != null || isParen(String.format("%c", valArray[j]))) {
                 operands[operandCount] = val.substring(opStartIndex, j);
                 operandCount++;
-                operands[operandCount] = val.substring(j, j + 1);
+                
+                if(j<val.length()-1)
+                    operands[operandCount] = val.substring(j, j + 1);
+                else
+                    operands[operandCount] = val.substring(j);
                 opStartIndex = j + 1;
                 operandCount++;
             }
