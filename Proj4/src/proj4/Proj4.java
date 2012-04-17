@@ -795,7 +795,7 @@ public class Proj4 {
                                         srcOperand = (SourceCodeLine) hashedSymbol.Value;
 
                                         src.Modifications = GetModifications(src);
-                                       
+
                                         //if (!src.IsImmediate || (src.IsImmediate && src.IsIndirect) {
 
                                         offset = GetPositionDifference(pc, srcOperand.Address);
@@ -921,10 +921,9 @@ public class Proj4 {
                         if (src.IsAddressOperation) {
 
                             String[] ops = BreakOutOperandSet(src.Operand);
-                            if(ops.length>1)
-                            {
-                                for(String op: ops){
-                                    if(_symbolTable.Find(op)!=null){
+                            if (ops.length > 1) {
+                                for (String op : ops) {
+                                    if (_symbolTable.Find(op) != null) {
                                         src.Modifications = GetModifications(src);
                                     }
                                 }
@@ -971,7 +970,7 @@ public class Proj4 {
                                     }
                                 }
                             }
-                            
+
 
                         }
                     }
@@ -992,40 +991,41 @@ public class Proj4 {
         return srcList;
     }
 
-    public String[] GetModifications(SourceCodeLine src){
-         for (String mod : src.Modifications) {
-                                            if (mod == null) {
+    public String[] GetModifications(SourceCodeLine src) {
+        for (String mod : src.Modifications) {
+            if (mod == null) {
 
-                                                String[] _ops = BreakOutOperandSet(src.Operand);
-                                                String[] ops = new String[0];
-                                                for(String _op: _ops){
-                                                    if(_op!=null && _op.trim().length()>0)
-                                                        ops = addElement(ops, _op);
-                                                }
-                                                
-                                                try {
-                                                    if (ops.length > 1) {
-                                                        {
-                                                            for (int p = 0; p < ops.length; p++) {
-                                                                if (isStackOp(ops[p]) && p < ops.length - 1) {
-                                                                    src.Modifications[p] = ops[p] + ops[p + 1];
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    
-                                                } catch (Exception ex) {
-                                                }
+                String[] _ops = BreakOutOperandSet(src.Operand);
+                String[] ops = new String[0];
+                for (String _op : _ops) {
+                    if (_op != null && _op.trim().length() > 0) {
+                        ops = addElement(ops, _op);
+                    }
+                }
 
-                                                src.Modifications[ops.length] = "+" + _appName;
-                                                
-                                                break;
-                                            }
+                try {
+                    if (ops.length > 1) {
+                        {
+                            for (int p = 0; p < ops.length; p++) {
+                                if (isStackOp(ops[p]) && p < ops.length - 1) {
+                                    src.Modifications[p] = ops[p] + ops[p + 1];
+                                }
+                            }
+                        }
+                    }
 
-                                        }
-         return src.Modifications;
+                } catch (Exception ex) {
+                }
+
+                src.Modifications[ops.length] = "+" + _appName;
+
+                break;
+            }
+
+        }
+        return src.Modifications;
     }
-    
+
     public boolean PrintToFile() {
         return PrintToFile(_projectName);
     }
@@ -1077,7 +1077,7 @@ public class Proj4 {
 
             BufferedWriter bw = new BufferedWriter(fw);
 
-            
+
 
             boolean writeStartOp = false;
 
@@ -1171,7 +1171,7 @@ public class Proj4 {
 
                     String textRecords = "";
                     int textStartAddress = -1;
-                    
+
                     int appStartAddress = -1;
 
                     for (SourceCodeLine src2 : _src) {
@@ -1180,7 +1180,7 @@ public class Proj4 {
                                 textStartAddress = src2.Address;
                             }
 
-                            
+
                             textRecords += src2.AssembledLine + " ";
                         } else if (src2.IsReservedAddress && textRecords.length() > 0) {
                             bw2.write(String.format("T %06X %02X %S", textStartAddress, (src2.Address - textStartAddress), textRecords));
@@ -1188,44 +1188,43 @@ public class Proj4 {
                             textStartAddress = -1;
                             textRecords = "";
                         }
-                        
-                        if(src2.Operator != null && src2.Operator.compareToIgnoreCase("END")==0){
+
+                        if (src2.Operator != null && src2.Operator.compareToIgnoreCase("END") == 0) {
                             HashValue op = _symbolTable.Find(src2.Operand);
-                            if(op!=null)        
-                            {
-                                appStartAddress = ((SourceCodeLine)(op.Value)).Address;
+                            if (op != null) {
+                                appStartAddress = ((SourceCodeLine) (op.Value)).Address;
                             }
                         }
                     }
-                    
+
                     bw2.write(String.format("T %X %X %S", textStartAddress, (_src[_src.length - 1].Address - textStartAddress), textRecords));
                     bw2.newLine();
-                    
-                    for(SourceCodeLine src3: _src){
-                        for(String mod: src3.Modifications){
-                            if(mod!=null)
-                                if(src3.IsAddressOperation)
-                                {    bw2.write(String.format("M %06X 06 %S", src3.Address, mod));
-                                    bw2.newLine();}
-                                else{ 
-                                    bw2.write(String.format("M %06X 05 %S", src3.Address+1, mod));
+
+                    for (SourceCodeLine src3 : _src) {
+                        for (String mod : src3.Modifications) {
+                            if (mod != null) {
+                                if (src3.IsAddressOperation) {
+                                    bw2.write(String.format("M %06X 06 %S", src3.Address, mod));
                                     bw2.newLine();
-                                    
-                                    }
+                                } else {
+                                    bw2.write(String.format("M %06X 05 %S", src3.Address + 1, mod));
+                                    bw2.newLine();
+
+                                }
+                            }
                         }
                     }
-                    
-                    if(appStartAddress<0){
+
+                    if (appStartAddress < 0) {
                         bw2.write(String.format("E %06X", startPosition));
                         bw2.newLine();
-                    }
-                    else{
-                        
+                    } else {
+
                         bw2.write(String.format("E %06X", appStartAddress));
                         bw2.newLine();
                     }
-                    
-                  
+
+
 
                 }
                 bw2.close();
@@ -1248,7 +1247,7 @@ public class Proj4 {
         } catch (IOException ex) {
             System.out.println("There was an error writing the output file file:" + ex.getMessage());
             return false;
-        } catch(Exception ex){
+        } catch (Exception ex) {
             System.out.println("There was an error writing the output files:" + ex.getMessage());
         }
 
@@ -1437,51 +1436,49 @@ public class Proj4 {
     }
 
     String[] addElement(String[] org, String added) {
-        
-        int orgLength= 0;
-        for(String o:org)
-        {
-            if(o!=null && o.trim().length()>0)
+
+        int orgLength = 0;
+        for (String o : org) {
+            if (o != null && o.trim().length() > 0) {
                 orgLength++;
+            }
         }
-        
-        String[] result = new String[orgLength+1];
-        
-        int i=0;
-        for(String o: org){
-            if(o!=null && o.trim().length()>0)
-            {
+
+        String[] result = new String[orgLength + 1];
+
+        int i = 0;
+        for (String o : org) {
+            if (o != null && o.trim().length() > 0) {
                 result[i] = o;
                 i++;
             }
         }
         result[orgLength] = added;
-        
+
         return result;
     }
 
     SourceCodeLine[] addElement(SourceCodeLine[] org, SourceCodeLine added) {
-        
-        int orgLength= 0;
-        for(SourceCodeLine o:org)
-        {
-            if(o!=null)
+
+        int orgLength = 0;
+        for (SourceCodeLine o : org) {
+            if (o != null) {
                 orgLength++;
+            }
         }
-        
-        
-        SourceCodeLine[] result = new SourceCodeLine[orgLength+1];
-        int i=0;
-        for(SourceCodeLine o: org){
-            if(o!=null )
-            {
+
+
+        SourceCodeLine[] result = new SourceCodeLine[orgLength + 1];
+        int i = 0;
+        for (SourceCodeLine o : org) {
+            if (o != null) {
                 result[i] = o;
                 i++;
             }
-            
+
         }
         result[orgLength] = added;
-        
+
         return result;
     }
     //Implementation of Shunting Yard Algorithm for 
@@ -1508,7 +1505,7 @@ public class Proj4 {
     SourceCodeLine ParseOrderOfOps(String val, SourceCodeLine src) throws Exception {
 
         privateRPN = src;
-        
+
         val = val.replace(" ", "");
         ArrayList<String> operations = new ArrayList<String>();
 
@@ -1544,7 +1541,7 @@ public class Proj4 {
                 } else {
                     if (!IsInteger(operand)) {
                         if (_symbolTable.Find(operand) != null) {
-                           // operand = String.format("%d", ((SourceCodeLine) (_symbolTable.Find(operand).Value)).Address);
+                            // operand = String.format("%d", ((SourceCodeLine) (_symbolTable.Find(operand).Value)).Address);
                         } else {
                             //throw new Exception("Invalid operand specified in Shunting Yard algorithm: Operands must be symbols or integers.");
                         }
@@ -1602,67 +1599,58 @@ public class Proj4 {
         src.Operand = val;
         return src;
     }
-
     private SourceCodeLine privateRPN = new SourceCodeLine();
-    
-    private boolean isParen(String val){
-        return val.compareTo("(")==0 || val.compareTo(")")==0 ;
+
+    private boolean isParen(String val) {
+        return val.compareTo("(") == 0 || val.compareTo(")") == 0;
     }
-    
+
     private double ParseRPN(Stack<String> ops) throws Exception {
         String tk = ops.pop();
-        double x=0, y=0;
+        double x = 0, y = 0;
         try {
             x = Double.parseDouble(tk);
         } catch (Exception e) {
-            try{
+            try {
+                y = ParseRPN(ops);
+                x = ParseRPN(ops);
+
                 HashValue sym = _symbolTable.Find(tk.toString());
-                
-                if(sym ==null){
-                    y = ParseRPN(ops);
-                    x = ParseRPN(ops);
-                }
-                else{
+                if (sym != null) {
                     privateRPN.Modifications = addElement(privateRPN.Modifications, ops.peek() + tk);
                 }
-            
-            if (tk.equals("+")) {
-                if (sym != null) {
-                    privateRPN.Modifications = addElement(privateRPN.Modifications, "+" + tk);
-                }    
-                else{
-                    x += y;
+
+                if (tk.equals("+")) {
+                    if (sym != null) {
+                        privateRPN.Modifications = addElement(privateRPN.Modifications, "+" + tk);
+                    } else {
+                        x += y;
+                    }
+                } else if (tk.equals("-")) {
+
+                    if (sym != null) {
+                        privateRPN.Modifications = addElement(privateRPN.Modifications, "-" + tk);
+                    } else {
+                        x -= y;
+                    }
+                } else if (tk.equals("*")) {
+
+                    if (sym != null) {
+                        privateRPN.Modifications = addElement(privateRPN.Modifications, "*" + tk);
+                    } else {
+                        x *= y;
+                    };
+                } else if (tk.equals("/")) {
+
+                    if (sym != null) {
+                        privateRPN.Modifications = addElement(privateRPN.Modifications, "/" + tk);
+                    } else {
+                        x /= y;
+                    }
+                } else {
+                    throw new Exception();
                 }
-            } else if (tk.equals("-")) {
-                
-                if (sym != null) {
-                    privateRPN.Modifications = addElement(privateRPN.Modifications, "-" + tk);
-                }    
-                else{
-                    x -= y;
-                }
-            } else if (tk.equals("*")) {
-                
-                if (sym != null) {
-                    privateRPN.Modifications = addElement(privateRPN.Modifications, "*" + tk);
-                }    
-                else{
-                    x *= y;
-                };
-            } else if (tk.equals("/")) {
-                
-                if (sym != null) {
-                    privateRPN.Modifications = addElement(privateRPN.Modifications, "/" + tk);
-                }    
-                else{
-                x /= y;
-                }
-            } else {
-                throw new Exception();
-            }
-            }
-            catch(Exception ex){
-                
+            } catch (Exception ex) {
             }
         }
         return x;
@@ -1691,18 +1679,19 @@ public class Proj4 {
         int opStartIndex = 0;
         int operandCount = 0;
 
-        String[] operands = new String[val.length()+2];
+        String[] operands = new String[val.length() + 2];
 
         char[] valArray = val.toCharArray();
         for (int j = 0; j < val.length(); j++) {
             if (operators.Find(String.format("%c", valArray[j])) != null || isParen(String.format("%c", valArray[j]))) {
                 operands[operandCount] = val.substring(opStartIndex, j);
                 operandCount++;
-                
-                if(j<val.length()-1)
+
+                if (j < val.length() - 1) {
                     operands[operandCount] = val.substring(j, j + 1);
-                else
+                } else {
                     operands[operandCount] = val.substring(j);
+                }
                 opStartIndex = j + 1;
                 operandCount++;
             }
@@ -1711,10 +1700,11 @@ public class Proj4 {
         operands[operandCount] = val.substring(opStartIndex);
 
         String[] ops = new String[0];
-        
-        for(String op: operands){
-            if(op!=null && op.trim().length()>0)
+
+        for (String op : operands) {
+            if (op != null && op.trim().length() > 0) {
                 ops = addElement(ops, op);
+            }
         }
         return ops;
     }
