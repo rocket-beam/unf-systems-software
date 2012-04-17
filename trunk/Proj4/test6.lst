@@ -1,24 +1,23 @@
-001   00100:        EXAM      START    100 
-002   00100: 762027 EXA       LDT     @C 
-003   00103: 9050             ADDR     T,A 
-004   00105: 0FA022           STA      C,X 
-005   00108: A045            +COMPR    S,T 
+000   00100:        EXAM      START    100 
+001   00100:                  BASE    #BIG 
+002   00100: 694000           LDB     #BIG 
+003   00103: 764006 EXA       LDT     @C 
+004   00106: 9050             ADDR     T,A 
+005   00108: 0FC006           STA      C,X 
+006   0010B: A045            +COMPR    S,T 
 ********Warning: Register-Register Operations do not support extended operator******************
-006   0010A: B440             CLEAR    S,S 
+007   0010D: B440             CLEAR    S,S 
 ********Warning: Duplicate Register specified in Register operation******************
-007   0010C:                  BASE    #BIG 
-008   0010C: 692012           LDB     #BIG 
-009   0010F:        B         EQU     C 
-010   0010F: 3E2FEE           J       @EXA 
-011   00112: 4F0000           RSUB 
-012   00115: FFFFF5 SEC       WORD     -11 
-013   00118:        NUM       RESW     1 
-014   0011B:        ANS       RESW     1 
-015   0011E: 00038D ONE       WORD     3*5+C*3 
-016   00121: 000000 BIG       WORD     0 
-017   00124:        B         RESW     1 
-********Duplicate Symbol Declaration!******************
-018   00127:                  LTORG 
-019   00127: 1B2FEE           ADD      SEC 
-020   0012A: 000000 C         WORD     0 
-021   0012D:                  END      EXA 
+008   0010F:        B         EQU      C 
+009   0010F: 3E2FF1           J       @EXA 
+010   00112: 1B2003           ADD      SEC 
+011   00115: 4F0000           RSUB 
+012   00118: FFFFF5 SEC       WORD     -11 
+013   0011B:        NUM       RESW     700 
+014   0094F:        ANS       RESW     1 
+015   00952: 00000F ONE       WORD     3*5 
+016   00955: 00021B BIG       WORD     SEC+EXA 
+017   00958:        B2         RESW     1 
+018   0095B:                  LTORG 
+019   0095B: 000000 C         WORD     0 
+020   0095E:                  END      EXA 

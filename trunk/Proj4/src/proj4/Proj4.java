@@ -33,6 +33,7 @@ public class Proj4 {
     private HashTable _regOps = new HashTable(6);
     private HashTable _registers = new HashTable(10);
     static String _projectName = "p4";
+    static String _appName = "";
     static int startPosition = -1;
     static int pc = 0;
     static int base = -1;
@@ -281,6 +282,8 @@ public class Proj4 {
 
     public SourceCodeLine[] AssemblePass1(String[] sourceCode) {
 
+        boolean startFound = false;
+
         _src = new SourceCodeLine[sourceCode.length];
 
         String out = "";
@@ -430,9 +433,9 @@ public class Proj4 {
                             if (src.Operand != null) {
                                 for (int m = 0; m < src.Operand.length(); m++) {
                                     if (operators.Find(src.Operand.substring(m, m + 1)) != null) {
-                                        if (src.Operand.substring(0, 1).compareTo("-") != 0) {
-                                            src.RequiresShunting = true;
-                                        }
+                                        //if (src.Operand.substring(0, 1).compareTo("-") != 0) {
+                                        src.RequiresShunting = true;
+                                        //}
                                     }
                                 }
                             }
@@ -459,6 +462,15 @@ public class Proj4 {
 
 
                         if (src.Operator.trim().toLowerCase().compareTo("start") == 0) {
+
+                            startFound = true;
+
+
+                            _appName = src.Label;
+
+                            if (_appName == null || _appName == "") {
+                                _appName = _projectName;
+                            }
 
                             src.IsPreproc = true;
                             startPosition = HexToInt(src.Operand);
@@ -624,6 +636,16 @@ public class Proj4 {
             }
         }
 
+        if (!startFound) {
+            for (SourceCodeLine src : _src) {
+                if (src != null) {
+                    src.HasError = true;
+                    src.ErrorMessage = "No Start point specified";
+                    break;
+                }
+            }
+        }
+
         DumpLiterals();
 
 
@@ -772,6 +794,8 @@ public class Proj4 {
                                     if (hashedSymbol != null) {
                                         srcOperand = (SourceCodeLine) hashedSymbol.Value;
 
+                                        src.Modifications = GetModifications(src);
+                                       
                                         //if (!src.IsImmediate || (src.IsImmediate && src.IsIndirect) {
 
                                         offset = GetPositionDifference(pc, srcOperand.Address);
@@ -896,6 +920,15 @@ public class Proj4 {
                     } else {
                         if (src.IsAddressOperation) {
 
+                            String[] ops = BreakOutOperandSet(src.Operand);
+                            if(ops.length>1)
+                            {
+                                for(String op: ops){
+                                    if(_symbolTable.Find(op)!=null){
+                                        src.Modifications = GetModifications(src);
+                                    }
+                                }
+                            }
                             if (src.IsLiteral) {
                                 String literalValue = src.OpModifier + src.Operand;
 
@@ -938,7 +971,7 @@ public class Proj4 {
                                     }
                                 }
                             }
-
+                            
 
                         }
                     }
@@ -959,6 +992,40 @@ public class Proj4 {
         return srcList;
     }
 
+    public String[] GetModifications(SourceCodeLine src){
+         for (String mod : src.Modifications) {
+                                            if (mod == null) {
+
+                                                String[] _ops = BreakOutOperandSet(src.Operand);
+                                                String[] ops = new String[0];
+                                                for(String _op: _ops){
+                                                    if(_op!=null && _op.trim().length()>0)
+                                                        ops = addElement(ops, _op);
+                                                }
+                                                
+                                                try {
+                                                    if (ops.length > 1) {
+                                                        {
+                                                            for (int p = 0; p < ops.length; p++) {
+                                                                if (isStackOp(ops[p]) && p < ops.length - 1) {
+                                                                    src.Modifications[p] = ops[p] + ops[p + 1];
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                } catch (Exception ex) {
+                                                }
+
+                                                src.Modifications[ops.length] = "+" + _appName;
+                                                
+                                                break;
+                                            }
+
+                                        }
+         return src.Modifications;
+    }
+    
     public boolean PrintToFile() {
         return PrintToFile(_projectName);
     }
@@ -967,6 +1034,16 @@ public class Proj4 {
 
         String outputListFileName = projectName + ".lst";
         String outputObjFileName = projectName + ".obj";
+
+        SourceCodeLine[] _src2 = new SourceCodeLine[0];
+
+        for (SourceCodeLine src2 : _src) {
+            if (src2 != null) {
+                _src2 = addElement(_src2, src2);
+            }
+        }
+
+        _src = _src2;
 
         boolean foundErrors = false;
 
@@ -999,7 +1076,7 @@ public class Proj4 {
 
             BufferedWriter bw = new BufferedWriter(fw);
 
-            String startPosition = "";
+            
 
             boolean writeStartOp = false;
 
@@ -1027,52 +1104,129 @@ public class Proj4 {
 
             if (!foundErrors) {
 
+
+
                 FileWriter fw2 = new FileWriter(outputObjFileName);
 
                 BufferedWriter bw2 = new BufferedWriter(fw2);
 
-                for (int i = 0; i < _src.length; i++) {
-                    src = _src[i];
-                    if (src != null) {
+//                for (int i = 0; i < _src.length; i++) {
+//                    src = _src[i];
+//                    if (src != null) {
+//
+//                        if (writeStartOp) {
+//                            bw2.write(String.format("%06X", src.Address));
+//                            bw2.newLine();
+//                            bw2.write(startPosition);
+//                            bw2.newLine();
+//                            writeStartOp = false;
+//                        }
+//
+//                        if (!src.IsPreproc && !src.IsReservedAddress) {
+//                            if (src.AssembledLine.trim().length() > 0) {
+//                                bw2.write(String.format("%S ", src.AssembledLine));
+//
+//                                bw2.newLine();
+//                            }
+//                        } else {
+//
+//                            if (src.IsReservedAddress || src.Operator.compareToIgnoreCase("END") == 0) {
+//                                bw2.write("!");
+//                                writeStartOp = true;
+//
+//                                bw2.newLine();
+//                            }
+//
+//                            if (src.Operator.compareToIgnoreCase("START") == 0) {
+//                                startPosition = String.format("%06X ", src.Address);
+//                                bw2.write(startPosition);
+//                                bw2.newLine();
+//                                bw2.write("000000");
+//                                writeStartOp = false;
+//
+//                                bw2.newLine();
+//                            }
+//
+//                        }
+//
+//                    }
+//                }
 
-                        if (writeStartOp) {
-                            bw2.write(String.format("%06X", src.Address));
+                String appName = "";
+                if (_src.length > 0) {
+                    for (SourceCodeLine src1 : _src) {
+                        if (src1 != null) {
+                            appName = src1.Label;
+                            if (appName == null || appName.trim().length() == 0) {
+                                appName = projectName;
+                            }
+                            bw2.write(String.format("H %S %06X %06X", appName, src1.Address, _src[_src.length - 1].Address));
                             bw2.newLine();
-                            bw2.write(startPosition);
-                            bw2.newLine();
-                            writeStartOp = false;
+
+                            break;
                         }
-
-                        if (!src.IsPreproc && !src.IsReservedAddress) {
-                            if (src.AssembledLine.trim().length() > 0) {
-                                bw2.write(String.format("%S ", src.AssembledLine));
-
-                                bw2.newLine();
-                            }
-                        } else {
-
-                            if (src.IsReservedAddress || src.Operator.compareToIgnoreCase("END") == 0) {
-                                bw2.write("!");
-                                writeStartOp = true;
-
-                                bw2.newLine();
-                            }
-
-                            if (src.Operator.compareToIgnoreCase("START") == 0) {
-                                startPosition = String.format("%06X ", src.Address);
-                                bw2.write(startPosition);
-                                bw2.newLine();
-                                bw2.write("000000");
-                                writeStartOp = false;
-
-                                bw2.newLine();
-                            }
-
-                        }
-
                     }
-                }
 
+
+                    String textRecords = "";
+                    int textStartAddress = -1;
+                    
+                    int appStartAddress = -1;
+
+                    for (SourceCodeLine src2 : _src) {
+                        if (!src2.IsComment && !src2.IsPreproc && !src2.IsReservedAddress) {
+                            if (textStartAddress < 0) {
+                                textStartAddress = src2.Address;
+                            }
+
+                            
+                            textRecords += src2.AssembledLine + " ";
+                        } else if (src2.IsReservedAddress && textRecords.length() > 0) {
+                            bw2.write(String.format("T %06X %02X %S", textStartAddress, (src2.Address - textStartAddress), textRecords));
+                            bw2.newLine();
+                            textStartAddress = -1;
+                            textRecords = "";
+                        }
+                        
+                        if(src2.Operator != null && src2.Operator.compareToIgnoreCase("END")==0){
+                            HashValue op = _symbolTable.Find(src2.Operand);
+                            if(op!=null)        
+                            {
+                                appStartAddress = ((SourceCodeLine)(op.Value)).Address;
+                            }
+                        }
+                    }
+                    
+                    bw2.write(String.format("T %X %X %S", textStartAddress, (_src[_src.length - 1].Address - textStartAddress), textRecords));
+                    bw2.newLine();
+                    
+                    for(SourceCodeLine src3: _src){
+                        for(String mod: src3.Modifications){
+                            if(mod!=null)
+                                if(src3.IsAddressOperation)
+                                {    bw2.write(String.format("M %06X 06 %S", src3.Address, mod));
+                                    bw2.newLine();}
+                                else{ 
+                                    bw2.write(String.format("M %06X 05 %S", src3.Address+1, mod));
+                                    bw2.newLine();
+                                    
+                                    }
+                        }
+                    }
+                    
+                    if(appStartAddress<0){
+                        bw2.write(String.format("E %06X", startPosition));
+                        bw2.newLine();
+                    }
+                    else{
+                        
+                        bw2.write(String.format("E %06X", appStartAddress));
+                        bw2.newLine();
+                    }
+                    
+                  
+
+                }
                 bw2.close();
                 fw2.close();
 
@@ -1284,6 +1438,12 @@ public class Proj4 {
         result[org.length] = added;
         return result;
     }
+
+    SourceCodeLine[] addElement(SourceCodeLine[] org, SourceCodeLine added) {
+        SourceCodeLine[] result = Arrays.copyOf(org, org.length + 1);
+        result[org.length] = added;
+        return result;
+    }
     //Implementation of Shunting Yard Algorithm for 
     //order of operation processing
     private static int LeftAssociative = 0;
@@ -1305,7 +1465,7 @@ public class Proj4 {
         return false;
     }
 
-    String ParseOrderOfOps(String val) throws Exception{
+    String ParseOrderOfOps(String val) throws Exception {
 
         val = val.replace(" ", "");
         ArrayList<String> operations = new ArrayList<String>();
@@ -1319,7 +1479,7 @@ public class Proj4 {
 
         for (String operand : operands) {
 
-            if (operand != null) {
+            if (operand != null && operand.length() > 0) {
                 if (isStackOp(operand)) {
                     while (!opStack.isEmpty() && isStackOp(opStack.peek())) {
                         if ((isAssociative(operand, LeftAssociative) && ComparePrecedence(
@@ -1332,13 +1492,13 @@ public class Proj4 {
                         break;
                     }
                     opStack.push(operand);
-//                } else if (operand.equals("(")) {
-//                    opStack.push(operand);
-//                } else if (operand.equals(")")) {
-//                    while (!opStack.empty() && !opStack.peek().equals("(")) {
-//                        operations.add(opStack.pop());
-//                    }
-//                    opStack.pop();
+                } else if (operand.equals("(")) {
+                    opStack.push(operand);
+                } else if (operand.equals(")")) {
+                    while (!opStack.empty() && !opStack.peek().equals("(")) {
+                        operations.add(opStack.pop());
+                    }
+                    opStack.pop();
                 } else {
                     if (!IsInteger(operand)) {
                         if (_symbolTable.Find(operand) != null) {
@@ -1347,6 +1507,7 @@ public class Proj4 {
                             //throw new Exception("Invalid operand specified in Shunting Yard algorithm: Operands must be symbols or integers.");
                         }
                     }
+
                     operations.add(operand);
                 }
 
@@ -1370,23 +1531,25 @@ public class Proj4 {
 
         String[] outputArray = new String[operations.size()];
 
-        
+
         Stack stack = new Stack<String>();
-        
-        for(Object op: operations){
-            stack.add((String)op);
+
+        for (Object op : operations) {
+            stack.add((String) op);
         }
-        
+
         double outInt = 0;
-        
-        try {
-            outInt = ParseRPN(stack);
-            
-            val = String.format("%.0f", outInt);
-        } catch (Exception ex) {
-          throw new Exception("Unable to parse Order of Operands.");
+
+        if (stack.size() > 2) {
+            try {
+                outInt = ParseRPN(stack);
+
+                val = String.format("%.0f", outInt);
+            } catch (Exception ex) {
+                throw new Exception("Unable to parse Order of Operands.");
+            }
         }
-        
+
         output = "";
         for (String out : operations.toArray(outputArray)) {
             output += out + " ";
@@ -1396,7 +1559,7 @@ public class Proj4 {
         return val;
     }
 
-    private static double ParseRPN(Stack<String> ops) throws Exception {
+    private double ParseRPN(Stack<String> ops) throws Exception {
         String tk = ops.pop();
         double x, y;
         try {
@@ -1404,13 +1567,15 @@ public class Proj4 {
         } catch (Exception e) {
             y = ParseRPN(ops);
             x = ParseRPN(ops);
-            if (tk.equals("+")) {
+            if (_symbolTable.Find(tk.toString()) != null) {
+            } else if (tk.equals("+")) {
                 x += y;
             } else if (tk.equals("-")) {
                 x -= y;
             } else if (tk.equals("*")) {
                 x *= y;
             } else if (tk.equals("/")) {
+                //if()
                 x /= y;
             } else {
                 throw new Exception();
@@ -1457,7 +1622,13 @@ public class Proj4 {
         //adds last value to operand set
         operands[operandCount] = val.substring(opStartIndex);
 
-        return operands;
+        String[] ops = new String[0];
+        
+        for(String op: operands){
+            if(op!=null && op.trim().length()>0)
+                ops = addElement(ops, op);
+        }
+        return ops;
     }
 }
 
