@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package proj4;
+//package proj4;
 
 import java.io.*;
 import java.math.BigInteger;
@@ -1058,6 +1058,7 @@ public class Proj4 {
             }
         }
 
+        System.out.println("Source Code Length:" + _src.length);
 
         try {
 
@@ -1247,6 +1248,8 @@ public class Proj4 {
         } catch (IOException ex) {
             System.out.println("There was an error writing the output file file:" + ex.getMessage());
             return false;
+        } catch(Exception ex){
+            System.out.println("There was an error writing the output files:" + ex.getMessage());
         }
 
 
@@ -1434,14 +1437,51 @@ public class Proj4 {
     }
 
     String[] addElement(String[] org, String added) {
-        String[] result = Arrays.copyOf(org, org.length + 1);
-        result[org.length] = added;
+        
+        int orgLength= 0;
+        for(String o:org)
+        {
+            if(o!=null && o.trim().length()>0)
+                orgLength++;
+        }
+        
+        String[] result = new String[orgLength+1];
+        
+        int i=0;
+        for(String o: org){
+            if(o!=null && o.trim().length()>0)
+            {
+                result[i] = o;
+                i++;
+            }
+        }
+        result[orgLength] = added;
+        
         return result;
     }
 
     SourceCodeLine[] addElement(SourceCodeLine[] org, SourceCodeLine added) {
-        SourceCodeLine[] result = Arrays.copyOf(org, org.length + 1);
-        result[org.length] = added;
+        
+        int orgLength= 0;
+        for(SourceCodeLine o:org)
+        {
+            if(o!=null)
+                orgLength++;
+        }
+        
+        
+        SourceCodeLine[] result = new SourceCodeLine[orgLength+1];
+        int i=0;
+        for(SourceCodeLine o: org){
+            if(o!=null )
+            {
+                result[i] = o;
+                i++;
+            }
+            
+        }
+        result[orgLength] = added;
+        
         return result;
     }
     //Implementation of Shunting Yard Algorithm for 
